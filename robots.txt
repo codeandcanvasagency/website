@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /template-pages/
+Disallow: /checkout
+
+Sitemap: https://code-and-canvas.web.app/sitemap.xml

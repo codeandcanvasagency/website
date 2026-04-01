@@ -1,0 +1,57 @@
+{
+  "functions": {
+    "source": "functions",
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" install"
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "cleanUrls": true,
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "/admin/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/api/contact",
+        "function": "contact"
+      },
+      {
+        "source": "/api/newsletter",
+        "function": "newsletter"
+      },
+      {
+        "source": "/api/seed-projects",
+        "function": "seedProjects"
+      },
+      {
+        "source": "/api/bootstrap-admin",
+        "function": "bootstrapAdmin"
+      },
+      {
+        "source": "/projects/**",
+        "destination": "/project-detail.html"
+      }
+    ]
+  }
+}

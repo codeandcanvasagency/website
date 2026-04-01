@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Portfolio admin | Code &amp; Canvas</title>
+    <!--
+      Remaining setup:
+      1. Authentication → Users: add staff accounts (Email/Password is enabled).
+      2. Firestore → collection `admins` → document ID = that user’s UID (empty doc is fine).
+      3. Authentication → Settings → Authorized domains: include your hosting domain (and localhost if testing locally).
+      4. Deploy hosting + Firestore/Storage rules so /admin and client SDK work in production.
+      5. Optional: POST /api/seed-projects with x-seed-secret after setting SEED_SECRET on the function.
+    -->
+    <style>
+      :root {
+        font-family:
+          "Space Grotesk",
+          system-ui,
+          sans-serif;
+        background: #0b0b0f;
+        color: #e8e8ec;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        max-width: 920px;
+        margin-inline: auto;
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+      a {
+        color: #9db7ff;
+      }
+      label {
+        display: block;
+        margin-top: 14px;
+        font-size: 0.85rem;
+        color: #aaa;
+      }
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="number"],
+      textarea {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin-top: 6px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #333;
+        background: #14141c;
+        color: inherit;
+      }
+      textarea {
+        min-height: 120px;
+        font-family: ui-monospace, monospace;
+        font-size: 13px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 10px;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        background: #3d5cff;
+        color: #fff;
+        font-weight: 500;
+      }
+      button.secondary {
+        background: #2a2a36;
+        color: #eee;
+      }
+      ul#projectList {
+        list-style: none;
+        padding: 0;
+      }
+      ul#projectList li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #222;
+      }
+      ul#projectList code {
+        font-size: 12px;
+        color: #8ab4ff;
+      }
+      .err {
+        color: #ff8a8a;
+        margin-top: 8px;
+      }
+      .ok {
+        color: #8affb3;
+        margin-top: 8px;
+      }
+      #loginPanel,
+      #adminPanel {
+        margin-top: 24px;
+      }
+    </style>
+    <script src="/js/firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+  </head>
+  <body>
+    <h1>Portfolio admin</h1>
+    <p>Add and edit published work. Images upload to Firebase Storage under <code>portfolio/&lt;slug&gt;/</code>.</p>
+
+    <div id="loginPanel">
+      <form id="loginForm">
+        <label>Email <input type="email" id="email" required autocomplete="username" /></label>
+        <label
+          >Password
+          <input type="password" id="password" required autocomplete="current-password"
+        /></label>
+        <div class="row">
+          <button type="submit">Sign in</button>
+        </div>
+        <div id="auth-error" class="err"></div>
+      </form>
+    </div>
+
+    <div id="firstSetupPanel" style="display: none">
+      <p>
+        You’re signed in, but your account isn’t in the <code>admins</code> collection yet. Firestore rules
+        don’t allow creating that from the browser.
+      </p>
+      <p>
+        <strong>First staff member:</strong> if there are no admins yet, you can create your record once with
+        the button below. After that, new staff must be added in Firestore or via the secret API.
+      </p>
+      <div class="row">
+        <button type="button" id="btnFirstAdmin">Create admin access for my account</button>
+        <button type="button" id="btnFirstSetupSignOut" class="secondary">Sign out</button>
+      </div>
+      <div id="firstSetupMsg" class="ok"></div>
+    </div>
+
+    <div id="adminPanel" style="display: none">
+      <div class="row">
+        <button type="button" id="logoutBtn" class="secondary">Sign out</button>
+        <button type="button" id="newBtn" class="secondary">New project</button>
+        <a href="/projects">View site projects</a>
+      </div>
+
+      <h2 style="margin-top: 32px; font-size: 1.1rem">Existing</h2>
+      <ul id="projectList"></ul>
+
+      <h2 style="margin-top: 32px; font-size: 1.1rem">Edit</h2>
+      <form id="projectForm">
+        <input type="hidden" id="editId" />
+        <label
+          >Title *
+          <input type="text" id="title" required />
+        </label>
+        <label
+          >URL slug *
+          <input type="text" id="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" />
+        </label>
+        <button type="button" id="slugAuto" class="secondary">Generate slug from title</button>
+        <label
+          >Tagline (service line)
+          <input type="text" id="tagline" />
+        </label>
+        <label
+          >Short summary (list + hero)
+          <textarea id="summary"></textarea>
+        </label>
+        <label
+          >Cover image URL
+          <input type="text" id="coverImageUrl" placeholder="https://… or /images/…" />
+        </label>
+        <label>Upload cover (Storage) <input type="file" id="coverFile" accept="image/*" /></label>
+        <div id="uploadStatus" class="ok"></div>
+        <label>Client <input type="text" id="client" /></label>
+        <label>Objective <input type="text" id="objective" /></label>
+        <label>Deliverables <input type="text" id="deliverables" /></label>
+        <label>Duration <input type="text" id="duration" /></label>
+        <label>Sort order <input type="number" id="sortOrder" value="0" /></label>
+        <label><input type="checkbox" id="published" checked /> Published (visible on website)</label>
+        <label
+          >Body HTML (safe: staff-only)
+          <textarea id="bodyHtml" style="min-height: 200px"></textarea>
+        </label>
+        <label
+          >Gallery image URLs (one per line)
+          <textarea id="galleryUrls" placeholder="https://…"></textarea>
+        </label>
+        <div class="row">
+          <button type="submit">Save project</button>
+        </div>
+        <div id="saveStatus" class="ok"></div>
+      </form>
+    </div>
+
+    <script src="/admin/admin.js?v=20260402"></script>
+  </body>
+</html>
