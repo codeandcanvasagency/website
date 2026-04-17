@@ -1,0 +1,75 @@
+<div class="card form w-form cnc-contact-form" data-cnc-contact-form>
+  <form
+    id="wf-form-Contact-Form"
+    class="cnc-contact-form__form"
+    name="wf-form-Contact-Form"
+    data-name="Contact Form"
+    method="post"
+    action="#"
+    novalidate
+  >
+    <div class="cnc-contact-form__hp" aria-hidden="true">
+      <label
+        ><span class="cnc-contact-form__hp-label">Leave this field blank</span
+        ><input type="text" name="website" tabindex="-1" autocomplete="off"
+      /></label>
+    </div>
+    <div>
+      <input
+        class="input w-input"
+        maxlength="256"
+        name="name"
+        placeholder="Full name"
+        type="text"
+        id="cnc-contact-name"
+        required
+      />
+    </div>
+    <div>
+      <input
+        class="input w-input"
+        maxlength="256"
+        name="email"
+        placeholder="Email address"
+        type="email"
+        id="cnc-contact-email"
+        required
+      />
+    </div>
+    <div>
+      <input
+        class="input w-input"
+        maxlength="256"
+        name="company"
+        placeholder="Company"
+        type="text"
+        id="cnc-contact-company"
+        required
+      />
+    </div>
+    <div class="text-area-wrapper">
+      <textarea
+        id="cnc-contact-message"
+        name="message"
+        maxlength="5000"
+        placeholder="Describe your project, request a callback or simply ask a question"
+        required
+        class="text-area w-input"
+      ></textarea>
+    </div>
+    <input type="submit" data-wait="Please wait…" class="btn-primary w-button" value="Send" />
+  </form>
+  <div class="success-message color-neutral-100 w-form-done cnc-contact-form__done" style="display: none">
+    <div>
+      <div class="line-square-icon success-message-icon large"></div>
+      <h2 class="color-neutral-100">Thank you</h2>
+      <div>
+        Your message has been submitted. <br />We will get back to you within
+        <span class="text-no-wrap">24-48 hours.</span>
+      </div>
+    </div>
+  </div>
+  <div class="error-message w-form-fail cnc-contact-form__fail" style="display: none">
+    <div>Oops! Something went wrong.</div>
+  </div>
+</div>

@@ -4,110 +4,59 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Portfolio admin | Code &amp; Canvas</title>
-    <!--
-      Remaining setup:
-      1. Authentication → Users: add staff accounts (Email/Password is enabled).
-      2. Firestore → collection `admins` → document ID = that user’s UID (empty doc is fine).
-      3. Authentication → Settings → Authorized domains: include your hosting domain (and localhost if testing locally).
-      4. Deploy hosting + Firestore/Storage rules so /admin and client SDK work in production.
-      5. Optional: POST /api/seed-projects with x-seed-secret after setting SEED_SECRET on the function.
-    -->
     <style>
       :root {
-        font-family:
-          "Space Grotesk",
-          system-ui,
-          sans-serif;
+        font-family: "Space Grotesk", system-ui, sans-serif;
         background: #0b0b0f;
         color: #e8e8ec;
       }
-      body {
-        margin: 0;
-        padding: 24px;
-        max-width: 920px;
-        margin-inline: auto;
+      body { margin: 0; padding: 24px; max-width: 920px; margin-inline: auto; }
+      h1 { font-size: 1.5rem; font-weight: 600; }
+      a { color: #9db7ff; }
+      label { display: block; margin-top: 14px; font-size: 0.85rem; color: #aaa; }
+      select, input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea {
+        width: 100%; max-width: 100%; box-sizing: border-box; margin-top: 6px;
+        padding: 10px 12px; border-radius: 8px; border: 1px solid #333;
+        background: #14141c; color: inherit; font-size: 0.9rem;
       }
-      h1 {
-        font-size: 1.5rem;
-        font-weight: 600;
-      }
-      a {
-        color: #9db7ff;
-      }
-      label {
-        display: block;
-        margin-top: 14px;
-        font-size: 0.85rem;
-        color: #aaa;
-      }
-      input[type="text"],
-      input[type="email"],
-      input[type="password"],
-      input[type="number"],
-      textarea {
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        margin-top: 6px;
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid #333;
-        background: #14141c;
-        color: inherit;
-      }
-      textarea {
-        min-height: 120px;
-        font-family: ui-monospace, monospace;
-        font-size: 13px;
-      }
-      .row {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: center;
-        margin-top: 10px;
-      }
-      button {
-        cursor: pointer;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 16px;
-        background: #3d5cff;
-        color: #fff;
-        font-weight: 500;
-      }
-      button.secondary {
-        background: #2a2a36;
-        color: #eee;
-      }
-      ul#projectList {
-        list-style: none;
-        padding: 0;
-      }
-      ul#projectList li {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px 0;
-        border-bottom: 1px solid #222;
-      }
-      ul#projectList code {
-        font-size: 12px;
-        color: #8ab4ff;
-      }
-      .err {
-        color: #ff8a8a;
-        margin-top: 8px;
-      }
-      .ok {
-        color: #8affb3;
-        margin-top: 8px;
-      }
-      #loginPanel,
-      #adminPanel {
-        margin-top: 24px;
-      }
+      textarea { min-height: 120px; font-family: ui-monospace, monospace; font-size: 13px; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+      button { cursor: pointer; border: none; border-radius: 8px; padding: 10px 16px; background: #3d5cff; color: #fff; font-weight: 500; }
+      button.secondary { background: #2a2a36; color: #eee; }
+      .list-meta { font-size: 0.85rem; color: #c9a227; margin: 0 0 12px; max-width: 52rem; }
+      .project-cards { display: flex; flex-direction: column; gap: 12px; }
+      .project-card { display: flex; gap: 16px; align-items: stretch; padding: 14px 16px; border-radius: 10px; border: 1px solid #2a2a36; background: #12121a; }
+      .project-card-thumb { flex: 0 0 96px; width: 96px; min-height: 72px; border-radius: 8px; overflow: hidden; background: #1a1a24; align-self: flex-start; }
+      .project-card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 72px; }
+      .project-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+      .project-card-title { margin: 0; font-size: 1.05rem; font-weight: 600; }
+      .project-card-meta { font-size: 0.8rem; color: #8ab4ff; font-family: ui-monospace, monospace; }
+      .project-card-summary { margin: 0; font-size: 0.88rem; line-height: 1.45; color: #b8b8c4; }
+      .project-card-body button { align-self: flex-start; margin-top: 6px; }
+      details.advanced { margin-top: 8px; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #101018; }
+      details.advanced summary { cursor: pointer; color: #aaa; font-size: 0.9rem; }
+      .err { color: #ff8a8a; margin-top: 8px; }
+      .ok { color: #8affb3; margin-top: 8px; }
+      #loginPanel, #adminPanel { margin-top: 24px; }
+      .section-label { margin: 28px 0 10px; font-size: 0.95rem; font-weight: 600; color: #9a9aa8; }
+      .section-label:first-of-type { margin-top: 8px; }
+      .empty-list-hint { font-size: 0.88rem; color: #666; margin: 0 0 16px; }
+      .modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px 48px; box-sizing: border-box; overflow-y: auto; background: rgba(0,0,0,0.72); }
+      .modal[hidden] { display: none !important; }
+      .modal-dialog { width: 100%; max-width: 560px; margin-top: 0; border-radius: 12px; border: 1px solid #333; background: #0f0f14; box-shadow: 0 24px 80px rgba(0,0,0,0.55); max-height: min(92vh,900px); display: flex; flex-direction: column; }
+      .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 12px; border-bottom: 1px solid #2a2a36; flex-shrink: 0; }
+      .modal-header h2 { margin: 0; font-size: 1.15rem; font-weight: 600; }
+      .modal-header .modal-sub { margin: 6px 0 0; font-size: 0.8rem; font-weight: 400; color: #888; }
+      .modal-close { flex-shrink: 0; padding: 6px 12px; font-size: 1.25rem; line-height: 1; min-width: auto; }
+      .modal-body { padding: 8px 20px 20px; overflow-y: auto; flex: 1; min-height: 0; }
+      .modal-body label:first-of-type { margin-top: 8px; }
+      .modal-actions { margin-top: 20px; padding-top: 16px; border-top: 1px solid #2a2a36; flex-wrap: wrap; }
+      .modal-actions button.secondary.draft-btn { border: 1px solid #444; }
+      .modal-actions-split { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #2a2a36; }
+      .modal-actions-split .row { margin-top: 0; }
+      button.danger { background: transparent; color: #ff8a8a; border: 1px solid #663333; }
+      button.danger:hover { background: #2a1515; }
+      .admin-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
     </style>
     <script src="/js/firebase-config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -117,31 +66,20 @@
   </head>
   <body>
     <h1>Portfolio admin</h1>
-    <p>Add and edit published work. Images upload to Firebase Storage under <code>portfolio/&lt;slug&gt;/</code>.</p>
+    <p>Manage companies, projects, and reviews. Add a company first, then link projects and reviews to it.</p>
 
     <div id="loginPanel">
       <form id="loginForm">
         <label>Email <input type="email" id="email" required autocomplete="username" /></label>
-        <label
-          >Password
-          <input type="password" id="password" required autocomplete="current-password"
-        /></label>
-        <div class="row">
-          <button type="submit">Sign in</button>
-        </div>
+        <label>Password <input type="password" id="password" required autocomplete="current-password" /></label>
+        <div class="row"><button type="submit">Sign in</button></div>
         <div id="auth-error" class="err"></div>
       </form>
     </div>
 
-    <div id="firstSetupPanel" style="display: none">
-      <p>
-        You’re signed in, but your account isn’t in the <code>admins</code> collection yet. Firestore rules
-        don’t allow creating that from the browser.
-      </p>
-      <p>
-        <strong>First staff member:</strong> if there are no admins yet, you can create your record once with
-        the button below. After that, new staff must be added in Firestore or via the secret API.
-      </p>
+    <div id="firstSetupPanel" style="display:none">
+      <p>You're signed in, but your account isn't in the <code>admins</code> collection yet.</p>
+      <p><strong>First staff member:</strong> create your admin record with the button below.</p>
       <div class="row">
         <button type="button" id="btnFirstAdmin">Create admin access for my account</button>
         <button type="button" id="btnFirstSetupSignOut" class="secondary">Sign out</button>
@@ -149,63 +87,214 @@
       <div id="firstSetupMsg" class="ok"></div>
     </div>
 
-    <div id="adminPanel" style="display: none">
+    <div id="adminPanel" style="display:none">
       <div class="row">
         <button type="button" id="logoutBtn" class="secondary">Sign out</button>
-        <button type="button" id="newBtn" class="secondary">New project</button>
-        <a href="/projects">View site projects</a>
+        <a href="/">View site</a>
       </div>
 
-      <h2 style="margin-top: 32px; font-size: 1.1rem">Existing</h2>
-      <ul id="projectList"></ul>
+      <div class="admin-actions">
+        <button type="button" id="newCompanyBtn">Add company</button>
+        <button type="button" id="newBtn">Add project</button>
+        <button type="button" id="newReviewBtn">Add review</button>
+        <button type="button" id="newBlogBtn">Add blog post</button>
+      </div>
 
-      <h2 style="margin-top: 32px; font-size: 1.1rem">Edit</h2>
-      <form id="projectForm">
-        <input type="hidden" id="editId" />
-        <label
-          >Title *
-          <input type="text" id="title" required />
-        </label>
-        <label
-          >URL slug *
-          <input type="text" id="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" />
-        </label>
-        <button type="button" id="slugAuto" class="secondary">Generate slug from title</button>
-        <label
-          >Tagline (service line)
-          <input type="text" id="tagline" />
-        </label>
-        <label
-          >Short summary (list + hero)
-          <textarea id="summary"></textarea>
-        </label>
-        <label
-          >Cover image URL
-          <input type="text" id="coverImageUrl" placeholder="https://… or /images/…" />
-        </label>
-        <label>Upload cover (Storage) <input type="file" id="coverFile" accept="image/*" /></label>
-        <div id="uploadStatus" class="ok"></div>
-        <label>Client <input type="text" id="client" /></label>
-        <label>Objective <input type="text" id="objective" /></label>
-        <label>Deliverables <input type="text" id="deliverables" /></label>
-        <label>Duration <input type="text" id="duration" /></label>
-        <label>Sort order <input type="number" id="sortOrder" value="0" /></label>
-        <label><input type="checkbox" id="published" checked /> Published (visible on website)</label>
-        <label
-          >Body HTML (safe: staff-only)
-          <textarea id="bodyHtml" style="min-height: 200px"></textarea>
-        </label>
-        <label
-          >Gallery image URLs (one per line)
-          <textarea id="galleryUrls" placeholder="https://…"></textarea>
-        </label>
-        <div class="row">
-          <button type="submit">Save project</button>
-        </div>
-        <div id="saveStatus" class="ok"></div>
-      </form>
+      <!-- Companies -->
+      <h2 style="margin-top:32px;font-size:1.1rem">Companies</h2>
+      <p id="companiesEmpty" class="empty-list-hint" hidden>No companies yet. Add a company first before creating projects or reviews.</p>
+      <div id="companyList" class="project-cards"></div>
+
+      <!-- Projects -->
+      <h2 style="margin-top:48px;font-size:1.1rem">Projects</h2>
+      <p id="projectListMeta" class="list-meta" aria-live="polite"></p>
+      <p class="section-label">Published</p>
+      <p id="publishedEmpty" class="empty-list-hint" hidden>No published projects yet.</p>
+      <div id="projectListPublished" class="project-cards"></div>
+      <p class="section-label">Drafts</p>
+      <p id="draftsEmpty" class="empty-list-hint" hidden>No drafts.</p>
+      <div id="projectListDrafts" class="project-cards"></div>
+
+      <!-- Reviews -->
+      <h2 style="margin-top:48px;font-size:1.1rem">Reviews / Testimonials</h2>
+      <p class="section-label">Published</p>
+      <p id="reviewsPubEmpty" class="empty-list-hint" hidden>No published reviews yet.</p>
+      <div id="reviewListPublished" class="project-cards"></div>
+      <p class="section-label">Drafts</p>
+      <p id="reviewsDraftEmpty" class="empty-list-hint" hidden>No draft reviews.</p>
+      <div id="reviewListDrafts" class="project-cards"></div>
+
+      <!-- Blog Posts -->
+      <h2 style="margin-top:48px;font-size:1.1rem">Blog Posts</h2>
+      <p class="section-label">Published</p>
+      <p id="blogPubEmpty" class="empty-list-hint" hidden>No published blog posts yet.</p>
+      <div id="blogListPublished" class="project-cards"></div>
+      <p class="section-label">Drafts</p>
+      <p id="blogDraftEmpty" class="empty-list-hint" hidden>No draft blog posts.</p>
+      <div id="blogListDrafts" class="project-cards"></div>
     </div>
 
-    <script src="/admin/admin.js?v=20260402"></script>
+    <!-- ═══ Company Modal ═══ -->
+    <div id="companyModal" class="modal" hidden aria-hidden="true">
+      <div class="modal-dialog" role="dialog" aria-modal="true">
+        <div class="modal-header">
+          <div><h2 id="companyModalTitle">New company</h2></div>
+          <button type="button" id="companyModalCloseBtn" class="secondary modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="companyForm">
+            <input type="hidden" id="companyEditId" />
+            <label>Company name * <input type="text" id="companyName" required autocomplete="off" /></label>
+            <label>Industry <input type="text" id="companyIndustry" /></label>
+            <label>Logo URL <input type="text" id="companyLogoUrl" placeholder="/images/… or https://…" /></label>
+            <label>Upload logo (Storage) <input type="file" id="companyLogoFile" accept="image/*" /></label>
+            <div id="companyUploadStatus" class="ok"></div>
+            <div class="row modal-actions">
+              <button type="button" id="btnCompanyCancel" class="secondary">Cancel</button>
+              <button type="button" id="btnCompanySave">Save company</button>
+            </div>
+            <div class="modal-actions-split">
+              <span></span>
+              <button type="button" id="btnDeleteCompany" class="danger" hidden>Delete company…</button>
+            </div>
+            <div id="companySaveStatus" class="ok"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Project Modal ═══ -->
+    <div id="projectModal" class="modal" hidden aria-hidden="true">
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle" aria-describedby="projectModalDesc">
+        <div class="modal-header">
+          <div>
+            <h2 id="projectModalTitle">New project</h2>
+            <p id="projectModalDesc" class="modal-sub">Save as a draft to work in private, or publish when it's ready for the site.</p>
+          </div>
+          <button type="button" id="modalCloseBtn" class="secondary modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="projectForm">
+            <input type="hidden" id="editId" />
+            <label>Company *
+              <select id="projectCompany"><option value="">— select a company —</option></select>
+            </label>
+            <label>Title * <input type="text" id="title" required autocomplete="off" /></label>
+            <label>URL slug * <input type="text" id="slug" autocomplete="off" placeholder="Generated from title if left empty" /></label>
+            <button type="button" id="slugAuto" class="secondary">Generate slug from title</button>
+            <label>Tagline (service line) <input type="text" id="tagline" /></label>
+            <label>Short summary (list + hero) <textarea id="summary"></textarea></label>
+            <label>Cover image URL <input type="text" id="coverImageUrl" placeholder="https://… or /images/…" /></label>
+            <label>Upload cover (Storage) <input type="file" id="coverFile" accept="image/*" /></label>
+            <div id="uploadStatus" class="ok"></div>
+            <label>Objective <input type="text" id="objective" /></label>
+            <label>Deliverables <input type="text" id="deliverables" /></label>
+            <label>Duration <input type="text" id="duration" /></label>
+            <label style="margin-top:14px">
+              <input type="checkbox" id="featured" style="width:auto;margin-right:8px" />
+              Featured project (shows in "Featured Projects" on the home page)
+            </label>
+            <label>Project date (controls "Latest Projects" ordering) <input type="date" id="projectDate" /></label>
+            <label>Sort order <input type="number" id="sortOrder" value="0" /></label>
+            <label>Case study — The brief <textarea id="caseBrief" placeholder="Goals, context, constraints…"></textarea></label>
+            <label>Case study — What we delivered <textarea id="caseDelivered" placeholder="Scope, process, deliverables…"></textarea></label>
+            <label>Case study — Result <textarea id="caseOutcome" placeholder="Outcomes, metrics, what shipped…"></textarea></label>
+            <details class="advanced">
+              <summary>Advanced: legacy HTML body</summary>
+              <label style="margin-top:12px">Body HTML <textarea id="bodyHtml" style="min-height:160px"></textarea></label>
+            </details>
+            <label>Gallery image URLs (one per line) <textarea id="galleryUrls" placeholder="https://…"></textarea></label>
+            <div class="row modal-actions">
+              <button type="button" id="btnModalCancel" class="secondary">Cancel</button>
+              <button type="button" id="btnSaveDraft" class="secondary draft-btn">Save draft</button>
+              <button type="button" id="btnUnpublish" class="secondary draft-btn" hidden>Unpublish</button>
+              <button type="button" id="btnSavePublish">Save &amp; publish</button>
+            </div>
+            <div class="modal-actions-split">
+              <span></span>
+              <button type="button" id="btnDeleteProject" class="danger" hidden>Delete project…</button>
+            </div>
+            <div id="saveStatus" class="ok"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Review Modal ═══ -->
+    <div id="reviewModal" class="modal" hidden aria-hidden="true">
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle">
+        <div class="modal-header">
+          <div>
+            <h2 id="reviewModalTitle">New review</h2>
+            <p class="modal-sub">Add or edit a client testimonial that appears on the homepage slider.</p>
+          </div>
+          <button type="button" id="reviewModalCloseBtn" class="secondary modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="reviewForm">
+            <input type="hidden" id="reviewEditId" />
+            <label>Company *
+              <select id="reviewCompany"><option value="">— select a company —</option></select>
+            </label>
+            <label>Heading / quote title * <input type="text" id="reviewHeading" required autocomplete="off" /></label>
+            <label>Review body * <textarea id="reviewBody"></textarea></label>
+            <label>Sort order <input type="number" id="reviewSortOrder" value="0" /></label>
+            <div class="row modal-actions">
+              <button type="button" id="btnReviewCancel" class="secondary">Cancel</button>
+              <button type="button" id="btnReviewSaveDraft" class="secondary draft-btn">Save draft</button>
+              <button type="button" id="btnReviewUnpublish" class="secondary draft-btn" hidden>Unpublish</button>
+              <button type="button" id="btnReviewSavePublish">Save &amp; publish</button>
+            </div>
+            <div class="modal-actions-split">
+              <span></span>
+              <button type="button" id="btnDeleteReview" class="danger" hidden>Delete review…</button>
+            </div>
+            <div id="reviewSaveStatus" class="ok"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Blog Post Modal ═══ -->
+    <div id="blogModal" class="modal" hidden aria-hidden="true">
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="blogModalTitle">
+        <div class="modal-header">
+          <div>
+            <h2 id="blogModalTitle">New blog post</h2>
+            <p class="modal-sub">Create or edit a blog article.</p>
+          </div>
+          <button type="button" id="blogModalCloseBtn" class="secondary modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="blogForm">
+            <input type="hidden" id="blogEditId" />
+            <label>Title * <input type="text" id="blogTitle" required autocomplete="off" /></label>
+            <label>URL slug * <input type="text" id="blogSlug" autocomplete="off" placeholder="Generated from title if left empty" /></label>
+            <button type="button" id="blogSlugAuto" class="secondary">Generate slug from title</button>
+            <label>Category <input type="text" id="blogCategory" placeholder="e.g. Branding, Design, Development" /></label>
+            <label>Summary (shown in cards) <textarea id="blogSummary"></textarea></label>
+            <label>Cover image URL <input type="text" id="blogCoverImageUrl" placeholder="https://… or /images/…" /></label>
+            <label>Upload cover (Storage) <input type="file" id="blogCoverFile" accept="image/*" /></label>
+            <div id="blogUploadStatus" class="ok"></div>
+            <label>Body HTML <textarea id="blogBodyHtml" style="min-height:200px"></textarea></label>
+            <label>Author <input type="text" id="blogAuthor" /></label>
+            <label>Date <input type="date" id="blogDate" /></label>
+            <div class="row modal-actions">
+              <button type="button" id="btnBlogCancel" class="secondary">Cancel</button>
+              <button type="button" id="btnBlogSaveDraft" class="secondary draft-btn">Save draft</button>
+              <button type="button" id="btnBlogUnpublish" class="secondary draft-btn" hidden>Unpublish</button>
+              <button type="button" id="btnBlogSavePublish">Save &amp; publish</button>
+            </div>
+            <div class="modal-actions-split">
+              <span></span>
+              <button type="button" id="btnDeleteBlog" class="danger" hidden>Delete blog post…</button>
+            </div>
+            <div id="blogSaveStatus" class="ok"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="/admin/admin.js?v=20260408"></script>
   </body>
 </html>

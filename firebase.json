@@ -51,6 +51,10 @@
       {
         "source": "/projects/**",
         "destination": "/project-detail.html"
+      },
+      {
+        "source": "/blog/**",
+        "destination": "/blog-detail.html"
       }
     ]
   }

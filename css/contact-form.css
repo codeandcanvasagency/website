@@ -1,0 +1,83 @@
+/*
+  Shared contact form (see partials/contact-form.html + js/contact-form.js).
+  Medium width: scales with viewport, capped for large screens.
+  Optional cap / message height on the mount:
+    <div data-contact-form-mount data-cnc-shell-max="640px" data-cnc-message-min-height="220px"></div>
+  (data-cnc-shell-max sets the upper bound used inside clamp().)
+*/
+
+.section.hero.v13.contact {
+  --cnc-contact-shell-max: 44rem;
+  --cnc-contact-message-min-height: 180px;
+}
+
+.section.hero.v13.contact .inner-container.card-form---content {
+  width: 100%;
+  box-sizing: border-box;
+  max-width: min(
+    100%,
+    clamp(17.5rem, 88vw, var(--cnc-contact-shell-max))
+  );
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cnc-contact-form {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.cnc-contact-form .text-area-wrapper {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.cnc-contact-form .cnc-contact-form__hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cnc-contact-form .cnc-contact-form__hp-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.cnc-contact-form .text-area-wrapper textarea.text-area,
+.cnc-contact-form #cnc-contact-message.text-area {
+  border: 1px solid var(--neutral--300, #e0e0e0);
+  border-radius: 8px;
+  min-height: var(--cnc-contact-message-min-height);
+  max-height: none;
+  margin-top: 0;
+  margin-bottom: 24px;
+  padding: 16px 18px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.cnc-contact-form .text-area-wrapper textarea.text-area:hover,
+.cnc-contact-form #cnc-contact-message.text-area:hover {
+  border-color: var(--accent--primary-1, #2563eb);
+}
+
+.cnc-contact-form .text-area-wrapper textarea.text-area:focus,
+.cnc-contact-form #cnc-contact-message.text-area:focus {
+  border-color: var(--accent--primary-1, #2563eb);
+  outline: none;
+}
+
+@media screen and (max-width: 991px) {
+  .section.hero.v13.contact .inner-container.card-form---content {
+    max-width: min(100%, clamp(17.5rem, 94vw, var(--cnc-contact-shell-max)));
+  }
+}

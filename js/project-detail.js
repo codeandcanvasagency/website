@@ -35,6 +35,37 @@
     );
   }
 
+  function plainToRichHtml(text) {
+    if (!text || !String(text).trim()) return "";
+    return String(text)
+      .trim()
+      .split(/\n\n+/)
+      .map(function (block) {
+        return "<p>" + esc(block).replace(/\n/g, "<br/>") + "</p>";
+      })
+      .join("");
+  }
+
+  function renderCaseStudyFromPlain(p) {
+    var chunks = [];
+    if (p.caseBrief && String(p.caseBrief).trim()) {
+      chunks.push(
+        '<h2>The brief</h2>' + plainToRichHtml(p.caseBrief),
+      );
+    }
+    if (p.caseDelivered && String(p.caseDelivered).trim()) {
+      chunks.push(
+        '<h2>What we delivered</h2>' + plainToRichHtml(p.caseDelivered),
+      );
+    }
+    if (p.caseOutcome && String(p.caseOutcome).trim()) {
+      chunks.push(
+        '<h2>Result</h2>' + plainToRichHtml(p.caseOutcome),
+      );
+    }
+    return chunks.join("");
+  }
+
   function renderGallery(urls) {
     if (!urls || !urls.length) return "";
     var items = urls
@@ -64,7 +95,7 @@
     var desc = document.querySelector('meta[name="description"]');
     if (desc && p.summary) desc.setAttribute("content", p.summary);
 
-    var cover = p.coverImageUrl || "/images/image-placeholder.svg";
+    var cover = p.coverImageUrl || "/images/placeholder.jpg";
     var stats =
       statBlock("Client", p.client) +
       statBlock("Objective", p.objective) +
@@ -72,7 +103,15 @@
       statBlock("Duration", p.duration);
 
     var bodySection = "";
-    if (p.bodyHtml) {
+    var plainBody = renderCaseStudyFromPlain(p);
+    if (plainBody) {
+      bodySection =
+        '<div class="inner-container _1012px center">' +
+        '<div class="mg-bottom-32px"><div class="inner-container _804px">' +
+        '<div class="rich-text-with-display-heading w-richtext">' +
+        plainBody +
+        "</div></div></div></div>";
+    } else if (p.bodyHtml) {
       bodySection =
         '<div class="inner-container _1012px center">' +
         '<div class="mg-bottom-32px"><div class="inner-container _804px">' +
