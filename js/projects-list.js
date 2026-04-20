@@ -11,6 +11,7 @@
     var href = "/projects/" + esc(p.slug);
     var img = esc(p.coverImageUrl || "/images/placeholder.jpg");
     var title = esc(p.title || "Project");
+    var tagline = esc(p.tagline || "");
     var summary = esc(p.summary || "");
     return (
       '<div role="listitem" class="w-dyn-item">' +
@@ -27,9 +28,10 @@
       '<div class="project-item-content">' +
       '<div class="inner-container project-item-content---text">' +
       "<div>" +
-      '<h2 class="display-4 color-neutral-100 mg-bottom-16px">' +
+      '<h2 class="display-4 color-neutral-100 mg-bottom-8px">' +
       title +
       "</h2>" +
+      (tagline ? '<p class="text-400 medium color-neutral-300 mg-bottom-16px">' + tagline + "</p>" : "") +
       '<p class="color-neutral-400 mg-bottom-0">' +
       summary +
       "</p>" +
@@ -90,7 +92,8 @@
       '<div class="cc-slide-img">' +
       '<img loading="lazy" src="' + img + '" alt="' + title + '"/>' +
       '</div>' +
-      '<p class="color-neutral-100" style="white-space:normal;margin:16px 0 0"><strong>' + tagline + '</strong></p>' +
+      '<p class="color-neutral-100" style="white-space:normal;margin:16px 0 0"><strong>' + title + '</strong></p>' +
+      (tagline ? '<p class="color-neutral-300" style="white-space:normal;margin:6px 0 0">' + tagline + '</p>' : '') +
       '<p class="color-neutral-400" style="white-space:normal;margin:8px 0 0">' + summary + '</p>' +
       '</a></div>'
     );

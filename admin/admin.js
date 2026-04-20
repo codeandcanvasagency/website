@@ -165,7 +165,8 @@
       $("companyLogoUrl").value = await ref.getDownloadURL();
       $("companyUploadStatus").textContent = "Uploaded.";
     } catch (e) {
-      $("companyUploadStatus").textContent = "Upload failed.";
+      console.error("Company logo upload error:", e);
+      $("companyUploadStatus").textContent = "Upload failed: " + (e.message || e.code || "unknown error");
     }
   }
 
@@ -246,7 +247,7 @@
     var company = getCompanyById(companyId);
     return {
       companyId: companyId,
-      client: company ? company.name + (company.industry ? " \u2014 " + company.industry : "") : "",
+      client: company ? company.name : "",
       slug: slugify($("slug").value) || slugify($("title").value),
       title: $("title").value.trim(),
       tagline: $("tagline").value.trim(),

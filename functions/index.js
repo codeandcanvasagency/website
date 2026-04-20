@@ -107,7 +107,7 @@ const SEED_PROJECTS = [
     summary:
       "Hoddle, a fintech startup, needed a secure yet intuitive mobile app with key tasks achievable in just two taps. Code & Canvas designed and developed a streamlined cross-platform app that balanced simplicity with robust functionality, positioning Hoddle for success in the fintech market.",
     coverImageUrl: "/images/hoddleweb.png",
-    client: "Hoddle — Fintech",
+    client: "Hoddle",
     objective: "Develop an all-in-one mobile banking app",
     deliverables: "Mobile App",
     duration: "16 Weeks",

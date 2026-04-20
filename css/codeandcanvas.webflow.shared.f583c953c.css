@@ -15586,9 +15586,17 @@ figcaption {
 #blogSearchInput::placeholder {
   color: var(--neutral--400);
 }
+@media screen and (max-width: 991px) {
+  .cc-carousel-arrows {
+    padding-right: 24px;
+  }
+}
 @media screen and (max-width: 767px) {
   .cc-slide { flex: 0 0 calc((100% - 24px) / 2); }
 }
 @media screen and (max-width: 479px) {
   .cc-slide { flex: 0 0 85%; }
+  .cc-carousel-arrows {
+    padding-right: 20px;
+  }
 }
