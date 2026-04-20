@@ -10752,7 +10752,7 @@ figcaption {
   }
 
   .container-default.z-index-1.home {
-    padding-right: 24px;
+    padding-right: 0;
   }
 
   .container-default.testimonial.blog {
@@ -14103,7 +14103,7 @@ figcaption {
   }
 
   .container-default.testimonial {
-    padding: 110px 0;
+    padding: 110px 20px;
   }
 
   .container-default.testimonial.blog.newsletter {
