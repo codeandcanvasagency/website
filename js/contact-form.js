@@ -26,6 +26,19 @@
 
     setVisible(root, form, done, fail, "form");
 
+    var messageEl = form.querySelector("#cnc-contact-message");
+    function autoGrowTextarea(el) {
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
+    if (messageEl) {
+      autoGrowTextarea(messageEl);
+      messageEl.addEventListener("input", function () {
+        autoGrowTextarea(messageEl);
+      });
+    }
+
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
       if (!form.reportValidity()) return;
@@ -60,6 +73,7 @@
           if (res.ok && res.data && res.data.ok) {
             setVisible(root, form, done, fail, "done");
             form.reset();
+            if (messageEl) autoGrowTextarea(messageEl);
           } else {
             setVisible(root, form, done, fail, "fail");
           }

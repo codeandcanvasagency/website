@@ -15592,3 +15592,32 @@ figcaption {
 @media screen and (max-width: 479px) {
   .cc-slide { flex: 0 0 85%; }
 }
+
+/* Override the old Twitter bird glyph with the X logo.
+   Uses a CSS mask so the icon picks up `currentColor` from its link,
+   i.e. white in the dark footer and dark in the contact/about cards. */
+a[href*="x.com"] .social-icon-font,
+a[href*="twitter.com"] .social-icon-font {
+  position: relative;
+  display: block;
+  width: 1em;
+  height: 1em;
+  text-indent: -9999em;
+  overflow: hidden;
+}
+a[href*="x.com"] .social-icon-font::before,
+a[href*="twitter.com"] .social-icon-font::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  -webkit-mask: url("../images/x-social-icon.png") no-repeat center / 85% 85%;
+          mask: url("../images/x-social-icon.png") no-repeat center / 85% 85%;
+}
+
+/* Footer needs a touch more size to match the other glyphs. */
+.footer-wrapper a[href*="x.com"] .social-icon-font::before,
+.footer-wrapper a[href*="twitter.com"] .social-icon-font::before {
+  -webkit-mask-size: 90% 90%;
+          mask-size: 90% 90%;
+}

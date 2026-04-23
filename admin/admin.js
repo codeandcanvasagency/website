@@ -219,6 +219,166 @@
   // ═══════════════════════════════════
   var modalDocPublished = false;
 
+  // ─── JSON view sync state ───
+  var EMPTY_PROJECT_TEMPLATE = {
+    companyId: "",
+    slug: "",
+    title: "",
+    tagline: "",
+    summary: "",
+    coverImageUrl: "",
+    objective: "",
+    deliverables: "",
+    duration: "",
+    featured: false,
+    date: "",
+    sortOrder: 0,
+    caseBrief: "",
+    caseDelivered: "",
+    caseOutcome: "",
+    bodyHtml: "",
+    galleryUrls: [],
+  };
+  var jsonSyncing = false;          // guard to prevent form↔JSON loops
+  var jsonSyncTimer = null;         // debounce: form → JSON
+  var jsonParseTimer = null;        // debounce: JSON → form
+  var lastEditedSide = "form";      // "form" | "json"
+  var originalProjectData = null;   // snapshot for "Discard changes"
+  var pendingSavePublished = null;  // remembers the save action when JSON-error modal is open
+
+  function toEditableShape(data) {
+    data = data || {};
+    return {
+      companyId: data.companyId || "",
+      slug: data.slug || "",
+      title: data.title || "",
+      tagline: data.tagline || "",
+      summary: data.summary || "",
+      coverImageUrl: data.coverImageUrl || "",
+      objective: data.objective || "",
+      deliverables: data.deliverables || "",
+      duration: data.duration || "",
+      featured: !!data.featured,
+      date: String(data.date || "").slice(0, 10),
+      sortOrder: Number(data.sortOrder) || 0,
+      caseBrief: data.caseBrief || "",
+      caseDelivered: data.caseDelivered || "",
+      caseOutcome: data.caseOutcome || "",
+      bodyHtml: data.bodyHtml || "",
+      galleryUrls: Array.isArray(data.galleryUrls) ? data.galleryUrls.slice() : [],
+    };
+  }
+
+  function buildEditableFromForm() {
+    return {
+      companyId: $("projectCompany").value,
+      slug: $("slug").value.trim(),
+      title: $("title").value.trim(),
+      tagline: $("tagline").value.trim(),
+      summary: $("summary").value.trim(),
+      coverImageUrl: $("coverImageUrl").value.trim(),
+      objective: $("objective").value.trim(),
+      deliverables: $("deliverables").value.trim(),
+      duration: $("duration").value.trim(),
+      featured: $("featured") ? !!$("featured").checked : false,
+      date: $("projectDate") && $("projectDate").value ? String($("projectDate").value).slice(0, 10) : "",
+      sortOrder: Number($("sortOrder").value) || 0,
+      caseBrief: $("caseBrief").value.trim(),
+      caseDelivered: $("caseDelivered").value.trim(),
+      caseOutcome: $("caseOutcome").value.trim(),
+      bodyHtml: $("bodyHtml").value,
+      galleryUrls: $("galleryUrls").value.split(/\n/).map(function (u) { return u.trim(); }).filter(Boolean),
+    };
+  }
+
+  function setJsonStatus(kind, msg) {
+    var el = $("projectJsonStatus");
+    if (!el) return;
+    el.textContent = msg || "";
+    el.className = kind === "err" ? "err" : "ok";
+  }
+
+  function writeJsonTextarea(obj) {
+    var ta = $("projectJson");
+    if (!ta) return;
+    jsonSyncing = true;
+    try { ta.value = JSON.stringify(obj, null, 2); }
+    finally { jsonSyncing = false; }
+  }
+
+  function syncJsonFromForm() {
+    if (!$("projectJson")) return;
+    writeJsonTextarea(buildEditableFromForm());
+    setJsonStatus("ok", "");
+  }
+
+  function applyJsonObjectToForm(data) {
+    var isEdit = !!$("editId").value;
+    jsonSyncing = true;
+    try {
+      if (data.companyId !== undefined) $("projectCompany").value = data.companyId || "";
+      // Slug stays read-only on existing docs — never overwrite from JSON when editing
+      if (!isEdit && data.slug !== undefined) $("slug").value = data.slug || "";
+      if (data.title !== undefined) $("title").value = data.title || "";
+      if (data.tagline !== undefined) $("tagline").value = data.tagline || "";
+      if (data.summary !== undefined) $("summary").value = data.summary || "";
+      if (data.coverImageUrl !== undefined) $("coverImageUrl").value = data.coverImageUrl || "";
+      if (data.objective !== undefined) $("objective").value = data.objective || "";
+      if (data.deliverables !== undefined) $("deliverables").value = data.deliverables || "";
+      if (data.duration !== undefined) $("duration").value = data.duration || "";
+      if (data.featured !== undefined) { var feat = $("featured"); if (feat) feat.checked = !!data.featured; }
+      if (data.date !== undefined) {
+        var dateEl = $("projectDate");
+        if (dateEl) dateEl.value = String(data.date || "").slice(0, 10);
+      }
+      if (data.sortOrder !== undefined) $("sortOrder").value = String(Number(data.sortOrder) || 0);
+      if (data.caseBrief !== undefined) $("caseBrief").value = data.caseBrief || "";
+      if (data.caseDelivered !== undefined) $("caseDelivered").value = data.caseDelivered || "";
+      if (data.caseOutcome !== undefined) $("caseOutcome").value = data.caseOutcome || "";
+      if (data.bodyHtml !== undefined) $("bodyHtml").value = data.bodyHtml || "";
+      if (data.galleryUrls !== undefined) {
+        var gu = data.galleryUrls;
+        $("galleryUrls").value = Array.isArray(gu) ? gu.join("\n") : String(gu || "");
+      }
+    } finally { jsonSyncing = false; }
+  }
+
+  function tryApplyJsonToForm() {
+    var ta = $("projectJson");
+    if (!ta) return true;
+    var raw = ta.value;
+    if (!raw.trim()) { setJsonStatus("err", "JSON is empty."); return false; }
+    var data;
+    try { data = JSON.parse(raw); }
+    catch (e) { setJsonStatus("err", "Invalid JSON: " + e.message); return false; }
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      setJsonStatus("err", "JSON must be an object.");
+      return false;
+    }
+    applyJsonObjectToForm(data);
+    setJsonStatus("ok", "");
+    return true;
+  }
+
+  function onProjectFieldInput() {
+    if (jsonSyncing) return;
+    lastEditedSide = "form";
+    if (jsonSyncTimer) clearTimeout(jsonSyncTimer);
+    jsonSyncTimer = setTimeout(function () { jsonSyncTimer = null; syncJsonFromForm(); }, 150);
+  }
+
+  function onProjectJsonInput() {
+    if (jsonSyncing) return;
+    lastEditedSide = "json";
+    if (jsonParseTimer) clearTimeout(jsonParseTimer);
+    jsonParseTimer = setTimeout(function () { jsonParseTimer = null; tryApplyJsonToForm(); }, 200);
+  }
+
+  function flushPendingSync() {
+    if (jsonSyncTimer) { clearTimeout(jsonSyncTimer); jsonSyncTimer = null; }
+    if (jsonParseTimer) { clearTimeout(jsonParseTimer); jsonParseTimer = null; }
+  }
+
   function fillForm(data, id) {
     $("editId").value = id || "";
     $("projectCompany").value = data.companyId || "";
@@ -287,10 +447,15 @@
 
   function openNewProjectModal() {
     modalDocPublished = false;
+    originalProjectData = JSON.parse(JSON.stringify(EMPTY_PROJECT_TEMPLATE));
     fillForm({}, "");
     $("slug").readOnly = false;
     setModalMode(true, true);
     syncModalActionButtons();
+    flushPendingSync();
+    writeJsonTextarea(EMPTY_PROJECT_TEMPLATE);
+    setJsonStatus("ok", "");
+    lastEditedSide = "form";
     openModal("projectModal");
     $("saveStatus").textContent = "";
     setTimeout(function () { $("projectCompany").focus(); }, 0);
@@ -298,9 +463,14 @@
 
   function openEditProjectModal(data, docId) {
     modalDocPublished = !!data.published;
+    originalProjectData = JSON.parse(JSON.stringify(data || {}));
     fillForm(data, docId);
     setModalMode(false, !data.published);
     syncModalActionButtons();
+    flushPendingSync();
+    writeJsonTextarea(toEditableShape(data));
+    setJsonStatus("ok", "");
+    lastEditedSide = "form";
     openModal("projectModal");
     $("saveStatus").textContent = "";
     setTimeout(function () { $("title").focus(); }, 0);
@@ -362,6 +532,19 @@
 
   async function saveProject(published) {
     $("saveStatus").textContent = ""; $("saveStatus").className = "ok";
+
+    // Reconcile JSON view ↔ form fields based on whichever was edited last.
+    flushPendingSync();
+    if (lastEditedSide === "json") {
+      if (!tryApplyJsonToForm()) {
+        pendingSavePublished = published;
+        openModal("projectJsonErrorModal");
+        return;
+      }
+    } else {
+      syncJsonFromForm();
+    }
+
     var form = $("projectForm"); if (form && !form.reportValidity()) return;
     var payload = readForm(published);
     if (!payload.companyId) { $("saveStatus").textContent = "Select a company."; $("saveStatus").className = "err"; return; }
@@ -384,6 +567,37 @@
     if (!confirm('Delete project "' + ($("title").value.trim() || editId) + '" permanently?')) return;
     try { await db.collection("projects").doc(editId).delete(); closeModal("projectModal"); await refreshList(); }
     catch (e) { $("saveStatus").textContent = "Delete failed: " + (e.message || e); $("saveStatus").className = "err"; }
+  }
+
+  // ─── JSON-error modal actions ───
+  function onJsonErrFix() {
+    closeModal("projectJsonErrorModal");
+    flushPendingSync();
+    syncJsonFromForm();
+    lastEditedSide = "form";
+    var p = pendingSavePublished;
+    pendingSavePublished = null;
+    if (p !== null) saveProject(!!p);
+  }
+
+  function onJsonErrDiscard() {
+    closeModal("projectJsonErrorModal");
+    flushPendingSync();
+    pendingSavePublished = null;
+    var orig = originalProjectData || {};
+    var editId = $("editId").value || "";
+    fillForm(orig, editId);
+    if (editId) $("slug").readOnly = true;
+    writeJsonTextarea(toEditableShape(orig));
+    setJsonStatus("ok", "");
+    lastEditedSide = "form";
+    closeModal("projectModal");
+  }
+
+  function onJsonErrKeep() {
+    closeModal("projectJsonErrorModal");
+    pendingSavePublished = null;
+    setTimeout(function () { var ta = $("projectJson"); if (ta) ta.focus(); }, 0);
   }
 
   // ═══════════════════════════════════
@@ -691,13 +905,34 @@
     $("btnSavePublish").addEventListener("click", function () { saveProject(true); });
     $("btnUnpublish").addEventListener("click", function () { saveProject(false); });
     $("btnDeleteProject").addEventListener("click", deleteProject);
-    $("btnModalCancel").addEventListener("click", function () { closeModal("projectModal"); });
-    $("modalCloseBtn").addEventListener("click", function () { closeModal("projectModal"); });
+    function closeProjectModalCleanup() {
+      flushPendingSync();
+      pendingSavePublished = null;
+      closeModal("projectJsonErrorModal");
+      closeModal("projectModal");
+    }
+    $("btnModalCancel").addEventListener("click", closeProjectModalCleanup);
+    $("modalCloseBtn").addEventListener("click", closeProjectModalCleanup);
     $("coverFile").addEventListener("change", uploadCover);
     $("slugAuto").addEventListener("click", function () { $("slug").value = slugify($("title").value); });
     $("projectForm").addEventListener("submit", function (ev) { ev.preventDefault(); });
     var pm = $("projectModal");
-    if (pm) pm.addEventListener("click", function (e) { if (e.target === pm) closeModal("projectModal"); });
+    if (pm) pm.addEventListener("click", function (e) { if (e.target === pm) closeProjectModalCleanup(); });
+
+    // JSON view ↔ form fields bidirectional sync (last edit wins)
+    $("projectForm").addEventListener("input", function (e) {
+      if (e.target && (e.target.id === "projectJson" || e.target.id === "coverFile")) return;
+      onProjectFieldInput();
+    });
+    $("projectForm").addEventListener("change", function (e) {
+      if (e.target && (e.target.id === "projectJson" || e.target.id === "coverFile")) return;
+      onProjectFieldInput();
+    });
+    var pj = $("projectJson");
+    if (pj) pj.addEventListener("input", onProjectJsonInput);
+    $("btnJsonErrFix").addEventListener("click", onJsonErrFix);
+    $("btnJsonErrDiscard").addEventListener("click", onJsonErrDiscard);
+    $("btnJsonErrKeep").addEventListener("click", onJsonErrKeep);
 
     // Reviews
     $("newReviewBtn").addEventListener("click", openNewReviewModal);
@@ -725,9 +960,11 @@
     var bm = $("blogModal");
     if (bm) bm.addEventListener("click", function (e) { if (e.target === bm) closeModal("blogModal"); });
 
-    // Escape key closes any open modal
+    // Escape key closes any open modal (top-most first)
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
+      var jsonErr = $("projectJsonErrorModal");
+      if (jsonErr && !jsonErr.hidden) { closeModal("projectJsonErrorModal"); pendingSavePublished = null; return; }
       ["companyModal", "projectModal", "reviewModal", "blogModal"].forEach(function (id) {
         var m = $(id); if (m && !m.hidden) closeModal(id);
       });

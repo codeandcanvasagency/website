@@ -14,50 +14,55 @@
         ><input type="text" name="website" tabindex="-1" autocomplete="off"
       /></label>
     </div>
-    <div>
-      <input
-        class="input w-input"
-        maxlength="256"
-        name="name"
-        placeholder="Full name"
-        type="text"
-        id="cnc-contact-name"
-        required
-      />
+    <div class="cnc-contact-form__stack">
+      <div>
+        <input
+          class="input w-input"
+          maxlength="256"
+          name="name"
+          placeholder="Full name"
+          type="text"
+          id="cnc-contact-name"
+          required
+        />
+      </div>
+      <div>
+        <input
+          class="input w-input"
+          maxlength="256"
+          name="email"
+          placeholder="Email address"
+          type="email"
+          id="cnc-contact-email"
+          required
+        />
+      </div>
+      <div>
+        <input
+          class="input w-input"
+          maxlength="256"
+          name="company"
+          placeholder="Company"
+          type="text"
+          id="cnc-contact-company"
+          required
+        />
+      </div>
+      <div class="text-area-wrapper">
+        <textarea
+          id="cnc-contact-message"
+          name="message"
+          maxlength="5000"
+          placeholder="Describe your project, request a callback or simply ask a question"
+          required
+          class="text-area w-input"
+          rows="1"
+        ></textarea>
+      </div>
+      <div class="cnc-contact-form__actions">
+        <input type="submit" data-wait="Please wait…" class="btn-primary w-button" value="Send" />
+      </div>
     </div>
-    <div>
-      <input
-        class="input w-input"
-        maxlength="256"
-        name="email"
-        placeholder="Email address"
-        type="email"
-        id="cnc-contact-email"
-        required
-      />
-    </div>
-    <div>
-      <input
-        class="input w-input"
-        maxlength="256"
-        name="company"
-        placeholder="Company"
-        type="text"
-        id="cnc-contact-company"
-        required
-      />
-    </div>
-    <div class="text-area-wrapper">
-      <textarea
-        id="cnc-contact-message"
-        name="message"
-        maxlength="5000"
-        placeholder="Describe your project, request a callback or simply ask a question"
-        required
-        class="text-area w-input"
-      ></textarea>
-    </div>
-    <input type="submit" data-wait="Please wait…" class="btn-primary w-button" value="Send" />
   </form>
   <div class="success-message color-neutral-100 w-form-done cnc-contact-form__done" style="display: none">
     <div>
