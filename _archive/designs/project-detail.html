@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bnkly — Project · Code &amp; Canvas</title>
+<meta name="description" content="A collaborative engagement helping the Bnkly team refine their architecture, platform and mobile app for a new era of fintech." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css?v=1777097108676" />
+<link rel="stylesheet" href="pages.css?v=1777097108676" />
+</head>
+<body data-screen-label="Project Detail — Bnkly">
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="brand" aria-label="Code & Canvas home">
+      <span>code</span><span class="ampersand">&amp;</span><span>canvas</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="index.html">Home</a>
+      <div class="nav-dropdown">
+        <span class="nav-trigger" tabindex="0">Services <span class="caret"></span></span>
+        <div class="nav-menu" role="menu">
+          <a href="index.html#services">Branding &amp; Strategy</a>
+          <a href="index.html#services">Platform &amp; App Development</a>
+          <a href="index.html#services">Website &amp; E-Commerce Development</a>
+          <a href="index.html#services">Data-Driven Optimisation</a>
+          <a href="index.html#services">Search Engine &amp; App Store Optimisation</a>
+          <a href="index.html#services">Technical Innovation &amp; Automation</a>
+          <a href="index.html#services">Bespoke IT Solutions</a>
+        </div>
+      </div>
+      <a href="projects.html" class="is-active">Projects</a>
+      <a href="index.html#blog">Blog</a>
+      <a href="index.html#about">About</a>
+    </nav>
+
+    <div class="header-right">
+      <a href="index.html#contact" class="btn btn-primary">
+        Get in touch
+        <span class="arrow"></span>
+      </a>
+    </div>
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false">
+        <svg class="icon-burger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      </div>
+  </header>
+
+<!-- Mobile nav drawer -->
+<div class="mobile-nav" id="mobileNav" aria-hidden="true">
+  <a href="index.html">Home</a>
+  <span class="mn-group-label">Services</span>
+  <div class="mn-services">
+    <a href="services.html">Branding &amp; Strategy</a>
+    <a href="services.html">Platform &amp; App Development</a>
+    <a href="services.html">Website &amp; E-Commerce Development</a>
+    <a href="services.html">Data-Driven Optimisation</a>
+    <a href="services.html">Search Engine &amp; App Store Optimisation</a>
+    <a href="services.html">Technical Innovation &amp; Automation</a>
+    <a href="services.html">Bespoke IT Solutions</a>
+  </div>
+  <a href="projects.html">Projects</a>
+  <a href="blog.html">Blog</a>
+  <a href="about.html">About</a>
+  <a href="contact.html" class="mn-cta">Get in touch <span aria-hidden="true">↗</span></a>
+  <div class="mn-foot">London &amp; Dubai · contact@codeandcanvas.agency</div>
+</div>
+
+<script>
+(function(){
+  const t = document.getElementById('menuToggle');
+  const m = document.getElementById('mobileNav');
+  if (!t || !m) return;
+  function close(){ t.classList.remove('is-open'); m.classList.remove('is-open'); t.setAttribute('aria-expanded','false'); m.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+  function open(){ t.classList.add('is-open'); m.classList.add('is-open'); t.setAttribute('aria-expanded','true'); m.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
+  t.addEventListener('click', () => t.classList.contains('is-open') ? close() : open());
+  m.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
+</script>
+
+
+<!-- ============================================================
+     DETAIL HERO
+     ============================================================ -->
+<section class="page-hero detail-hero">
+  <div class="container">
+    <a href="projects.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+      All projects
+    </a>
+
+    <div class="tagline">Fintech · Platform redesign · 2024</div>
+    <h1>Bnkly — A true partnership <span class="italic">in innovation.</span></h1>
+    <p class="lead">A collaborative engagement helping the Bnkly team refine their architecture, platform and mobile app for a new era of fintech — built to scale to a million customers without losing the human touch.</p>
+
+    <div class="detail-cover">
+      <img src="assets/project-bnkly.png" alt="Bnkly platform" />
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     STATS
+     ============================================================ -->
+<section class="section" style="padding-top: 0; padding-bottom: 0;">
+  <div class="container">
+    <div class="detail-stats">
+      <div class="stat">
+        <span class="stat-label">Client</span>
+        <span class="stat-value">Bnkly Financial</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Objective</span>
+        <span class="stat-value">Re-platform &amp; relaunch</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Deliverables</span>
+        <span class="stat-value">iOS, Android, web platform, design system</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Duration</span>
+        <span class="stat-value">14 months</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CASE BODY
+     ============================================================ -->
+<section>
+  <div class="container">
+    <div class="case-body">
+
+      <h2><span class="marker">— 01 / The brief</span>A platform that could grow up.</h2>
+      <p>Bnkly came to us with a product that worked, a customer base that loved it, and an architecture quietly buckling under both. Three years of feature iteration had left a tangle of overlapping services, inconsistent design tokens, and a mobile experience that was lagging a generation behind the competition.</p>
+      <p>Our remit was clear: re-platform without disrupting customers, modernise the visual system without losing brand recognition, and ship a mobile app that would carry Bnkly into the next million accounts.</p>
+
+      <h2><span class="marker">— 02 / What we delivered</span>A complete platform reset, end to end.</h2>
+      <p>We started by stripping the design language back to first principles — a single typographic scale, a tighter colour system, and a component library generated from tokens. Engineering and design worked from the same source of truth from day one.</p>
+      <p>On the platform side, we collapsed seven services into three, introduced a new event-driven core, and rebuilt the customer dashboard around a clearer information hierarchy. The mobile app was rewritten on a shared design system, with biometric auth, instant transfers, and a redesigned onboarding that takes under ninety seconds.</p>
+      <p>Every release shipped behind a feature flag. Every change was measured. Every customer migration was opt-in until the very last week.</p>
+
+      <h2><span class="marker">— 03 / Result</span>+38% activation, half the support load.</h2>
+      <p>Within four months of launch, activation was up 38%, daily active users up 22%, and support contact rate down by nearly half. Engineering velocity doubled — what used to take a sprint now takes a day. The platform now carries 2.4× the traffic on a third of the infrastructure cost.</p>
+      <p>More importantly, Bnkly has a system that compounds. Every team ships into the same design language. Every customer touchpoint feels like the same product. And the next million customers will land on a platform built for them, not adapted around them.</p>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     INLINE CTA
+     ============================================================ -->
+<section>
+  <div class="container">
+    <div class="detail-cta">
+      <h3>Have a project that needs <span class="italic">this kind of care?</span></h3>
+      <a href="index.html#contact" class="btn btn-primary">Let's chat <span class="arrow"></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     GALLERY
+     ============================================================ -->
+<section class="detail-gallery" style="padding-top: 80px">
+  <div class="container">
+    <div class="gallery-hero">
+      <img src="assets/project-bnkly.png" alt="Bnkly hero shot" />
+    </div>
+    <div class="gallery-grid">
+      <div><img src="assets/project-hoddle.png" alt="" /></div>
+      <div><img src="assets/project-blockchain.png" alt="" /></div>
+      <div><img src="assets/project-ecommerce.png" alt="" /></div>
+      <div><img src="assets/project-photographer.png" alt="" /></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     NEXT PROJECT
+     ============================================================ -->
+<section class="section" style="padding-top: 0">
+  <div class="container">
+    <div class="section-head" style="border-top: 1px solid var(--ink-line); padding-top: 64px">
+      <div class="head-left">
+        <div class="eyebrow">Next project</div>
+        <h2 class="display-3">Shilaking — Branding <span class="italic">&amp; e-commerce.</span></h2>
+      </div>
+      <a href="project-detail.html" class="btn btn-ghost">View case study <span class="arrow"></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-cta">
+      <h2 class="display-1">Want to start <span class="italic">a project?</span></h2>
+      <a href="index.html#contact" class="footer-cta-link">
+        <span class="italic">Let's chat</span>
+        <span class="icon-btn no-rotate" style="width:64px;height:64px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </div>
+
+    <div class="footer-main">
+      <div class="footer-brand">
+        <div class="brand"><span>code</span><span class="ampersand">&amp;</span><span>canvas</span></div>
+        <p>Crafting cutting-edge digital experiences to grow businesses and transform brands.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Pages</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#services">Services</a></li>
+          <li><a href="projects.html">Projects</a></li>
+          <li><a href="index.html#blog">Blog</a></li>
+          <li><a href="index.html#about">About</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="index.html#services">Branding &amp; Strategy</a></li>
+          <li><a href="index.html#services">Platform &amp; App Development</a></li>
+          <li><a href="index.html#services">Website &amp; E-Commerce Development</a></li>
+          <li><a href="index.html#services">Data-Driven Optimisation</a></li>
+          <li><a href="index.html#services">Search &amp; App Store Optimisation</a></li>
+          <li><a href="index.html#services">Technical Innovation &amp; Automation</a></li>
+          <li><a href="index.html#services">Bespoke IT Solutions</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© Code &amp; Canvas 2026. London &amp; Dubai.</p>
+      <div class="socials">
+        <a href="#" class="social-link" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM8.34 17.34H5.67V9.67h2.67v7.67zM7 8.5a1.55 1.55 0 1 1 0-3.1 1.55 1.55 0 0 1 0 3.1zm11.34 8.84h-2.67v-3.74c0-.89-.02-2.04-1.24-2.04-1.24 0-1.43.97-1.43 1.97v3.81h-2.67V9.67h2.56v1.05h.04c.36-.68 1.23-1.4 2.53-1.4 2.71 0 3.21 1.78 3.21 4.1v3.92z"/></svg></a>
+        <a href="#" class="social-link" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.45 2.89h-2.34v6.99A10 10 0 0 0 22 12z"/></svg></a>
+        <a href="#" class="social-link" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 3H20.5l-6.5 7.43L21.5 21h-5.95l-4.66-6.1L5.5 21H2.5l6.95-7.95L2 3h6.1l4.21 5.56L17.53 3zm-1.04 16.2h1.65L7.62 4.71H5.85L16.49 19.2z"/></svg></a>
+        <a href="#" class="social-link" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.42.56.21.96.47 1.38.89.42.42.68.82.89 1.38.16.42.36 1.06.42 2.23.05 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.42 2.23-.21.56-.47.96-.89 1.38-.42.42-.82.68-1.38.89-.42.16-1.06.36-2.23.42-1.27.05-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.42-.56-.21-.96-.47-1.38-.89-.42-.42-.68-.82-.89-1.38-.16-.42-.36-1.06-.42-2.23-.05-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.42-2.23.21-.56.47-.96.89-1.38.42-.42.82-.68 1.38-.89.42-.16 1.06-.36 2.23-.42C8.42 2.18 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63a5.62 5.62 0 0 0-2.04 1.33A5.62 5.62 0 0 0 .77 4c-.3.76-.5 1.64-.56 2.91C.15 8.19.14 8.6.14 11.86c0 3.26.01 3.67.07 4.95.06 1.27.26 2.15.56 2.91a5.62 5.62 0 0 0 1.33 2.04 5.62 5.62 0 0 0 2.04 1.33c.76.3 1.64.5 2.91.56 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.62 5.62 0 0 0 2.04-1.33 5.62 5.62 0 0 0 1.33-2.04c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.62 5.62 0 0 0-1.33-2.04A5.62 5.62 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('[data-reveal]').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

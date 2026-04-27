@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Code &amp; Canvas — London &amp; Dubai's Leading Digital Agency</title>
+<meta name="description" content="Code & Canvas is a London & Dubai digital agency delivering branding, web, app, and growth services for modern businesses." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css?v=1777097108676" />
+</head>
+<body data-screen-label="Home — Modernised">
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="#" class="brand" aria-label="Code & Canvas home">
+      <span>code</span><span class="ampersand">&amp;</span><span>canvas</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="#" class="is-active">Home</a>
+      <div class="nav-dropdown">
+        <span class="nav-trigger" tabindex="0">Services <span class="caret"></span></span>
+        <div class="nav-menu" role="menu">
+          <a href="#services">Branding &amp; Strategy</a>
+          <a href="#services">Platform &amp; App Development</a>
+          <a href="#services">Website &amp; E-Commerce Development</a>
+          <a href="#services">Data-Driven Optimisation</a>
+          <a href="#services">Search Engine &amp; App Store Optimisation</a>
+          <a href="#services">Technical Innovation &amp; Automation</a>
+          <a href="#services">Bespoke IT Solutions</a>
+        </div>
+      </div>
+      <a href="#projects">Projects</a>
+      <a href="#blog">Blog</a>
+      <a href="#about">About</a>
+    </nav>
+
+    <div class="header-right">
+      <a href="#contact" class="btn btn-primary">
+        Get in touch
+        <span class="arrow"></span>
+      </a>
+    </div>
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false">
+        <svg class="icon-burger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      </div>
+  </header>
+
+<!-- Mobile nav drawer -->
+<div class="mobile-nav" id="mobileNav" aria-hidden="true">
+  <a href="index.html">Home</a>
+  <span class="mn-group-label">Services</span>
+  <div class="mn-services">
+    <a href="services.html">Branding &amp; Strategy</a>
+    <a href="services.html">Platform &amp; App Development</a>
+    <a href="services.html">Website &amp; E-Commerce Development</a>
+    <a href="services.html">Data-Driven Optimisation</a>
+    <a href="services.html">Search Engine &amp; App Store Optimisation</a>
+    <a href="services.html">Technical Innovation &amp; Automation</a>
+    <a href="services.html">Bespoke IT Solutions</a>
+  </div>
+  <a href="projects.html">Projects</a>
+  <a href="blog.html">Blog</a>
+  <a href="about.html">About</a>
+  <a href="contact.html" class="mn-cta">Get in touch <span aria-hidden="true">↗</span></a>
+  <div class="mn-foot">London &amp; Dubai · contact@codeandcanvas.agency</div>
+</div>
+
+<script>
+(function(){
+  const t = document.getElementById('menuToggle');
+  const m = document.getElementById('mobileNav');
+  if (!t || !m) return;
+  function close(){ t.classList.remove('is-open'); m.classList.remove('is-open'); t.setAttribute('aria-expanded','false'); m.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+  function open(){ t.classList.add('is-open'); m.classList.add('is-open'); t.setAttribute('aria-expanded','true'); m.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
+  t.addEventListener('click', () => t.classList.contains('is-open') ? close() : open());
+  m.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
+</script>
+
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<section class="section hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-copy" data-reveal>
+        <div class="eyebrow">Innovating where creativity meets technology</div>
+
+        <h1 class="display-1">
+          London <span class="italic">&amp;</span> Dubai's <br/>
+          <span class="underline-word">leading&nbsp;</span>digital <br/>
+          <span class="italic">agency.</span>
+        </h1>
+
+        <p class="lead">Crafting cutting-edge digital experiences to grow businesses and transform brands.</p>
+
+        <div class="hero-meta">
+          <div class="pair">
+            <span class="pair-label">Studios</span>
+            <span class="pair-value">London / Dubai</span>
+          </div>
+          <div class="pair">
+            <span class="pair-label">Est.</span>
+            <span class="pair-value">2019</span>
+          </div>
+          <div class="pair">
+            <span class="pair-label">Status</span>
+            <span class="pair-value">Open for 2026</span>
+          </div>
+        </div>
+
+        <div class="hero-cta-row">
+          <a href="#contact" class="btn btn-primary">Let's chat <span class="arrow"></span></a>
+          <a href="#services" class="btn btn-ghost">View services</a>
+        </div>
+      </div>
+
+      <div class="hero-visual" data-reveal>
+        <div class="hero-image-frame">
+          <img src="assets/hero-bg.jpg" alt="" />
+          <div class="hero-image-overlay">
+            <span><span class="dot"></span>Live · code &amp; canvas studios</span>
+            <span>N 51.5074° / E 55.2708°</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-side-meta">
+    <span>—</span><span>scroll</span><span>·</span><span>002 / 09</span>
+  </div>
+</section>
+
+<!-- ============================================================
+     PARTNERS
+     ============================================================ -->
+<section class="partners">
+  <div class="container">
+    <div class="partners-head">
+      <div class="eyebrow">Trusted partner services</div>
+      <span class="eyebrow" style="opacity:0.6">10 platforms · enterprise grade</span>
+    </div>
+    <div class="logo-marquee">
+      <div class="logo-track">
+        <img src="assets/gclogo.png" alt="Google Cloud" />
+        <img src="assets/aws.png" alt="AWS" />
+        <img src="assets/azure.png" alt="Azure" />
+        <img src="assets/hubspot.png" alt="HubSpot" />
+        <img src="assets/intercom.png" alt="Intercom" />
+        <img src="assets/gclogo.png" alt="Google Cloud" />
+        <img src="assets/aws.png" alt="AWS" />
+        <img src="assets/azure.png" alt="Azure" />
+        <img src="assets/hubspot.png" alt="HubSpot" />
+        <img src="assets/intercom.png" alt="Intercom" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FEATURED PROJECTS
+     ============================================================ -->
+<section class="section" id="projects">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <div class="head-left">
+        <div class="eyebrow">Portfolio</div>
+        <h2 class="display-2">Featured <span class="italic">projects.</span></h2>
+      </div>
+      <a href="#" class="btn btn-ghost">See all <span class="arrow"></span></a>
+    </div>
+
+    <div class="projects">
+      <a href="#" class="project-card" data-reveal>
+        <div class="project-card-img" data-num="01 / Bnkly">
+          <img src="assets/project-bnkly.png" alt="Bnkly" />
+        </div>
+        <div class="project-card-body">
+          <div class="project-tags">
+            <span class="tag">Fintech</span>
+            <span class="tag">Platform</span>
+            <span class="tag">Mobile</span>
+          </div>
+          <h3>Hoddle — A true partnership in innovation</h3>
+          <p class="summary">A collaborative engagement helping the Hoddle team refine their architecture, platform and mobile app for a new era of fintech.</p>
+          <span class="read-more">View case study <span class="arrow"></span></span>
+        </div>
+      </a>
+
+      <a href="#" class="project-card" data-reveal>
+        <div class="project-card-img" data-num="02 / Shilaking">
+          <img src="assets/project-ecommerce.png" alt="Shilaking E-commerce" />
+        </div>
+        <div class="project-card-body">
+          <div class="project-tags">
+            <span class="tag">E-commerce</span>
+            <span class="tag">Branding</span>
+            <span class="tag">Shopify</span>
+          </div>
+          <h3>Shilaking — Branding &amp; e-commerce, done right</h3>
+          <p class="summary">From brand identity to a top-tier dropshipping store, we captured the founder's vision and shipped a store that converts.</p>
+          <span class="read-more">View case study <span class="arrow"></span></span>
+        </div>
+      </a>
+
+      <a href="#" class="project-card" data-reveal>
+        <div class="project-card-img" data-num="03 / Viking">
+          <img src="assets/project-photographer.png" alt="Viking Cars" />
+        </div>
+        <div class="project-card-body">
+          <div class="project-tags">
+            <span class="tag">Transport</span>
+            <span class="tag">App</span>
+            <span class="tag">Marketing</span>
+          </div>
+          <h3>Viking Cars — A reliable partner in success</h3>
+          <p class="summary">Telephone systems, marketing infrastructure and an app build — a full-spectrum engagement for a long-running transport brand.</p>
+          <span class="read-more">View case study <span class="arrow"></span></span>
+        </div>
+      </a>
+
+      <a href="#" class="project-card" data-reveal>
+        <div class="project-card-img" data-num="04 / Maal Monkeys">
+          <img src="assets/project-blockchain.png" alt="Maal Monkeys" />
+        </div>
+        <div class="project-card-body">
+          <div class="project-tags">
+            <span class="tag">NFT</span>
+            <span class="tag">Web3</span>
+            <span class="tag">Community</span>
+          </div>
+          <h3>Maal Monkeys — Building an NFT community</h3>
+          <p class="summary">Brand, mint experience and community platform for an NFT collection that needed to feel both crafted and credible.</p>
+          <span class="read-more">View case study <span class="arrow"></span></span>
+        </div>
+      </a>
+
+      <a href="#" class="project-card" data-reveal>
+        <div class="project-card-img" data-num="05 / Hoddle Web">
+          <img src="assets/project-hoddle.png" alt="Hoddle Web" />
+        </div>
+        <div class="project-card-body">
+          <div class="project-tags">
+            <span class="tag">Web</span>
+            <span class="tag">Design system</span>
+          </div>
+          <h3>Hoddle Web — A new digital home</h3>
+          <p class="summary">A marketing site and design system that scales alongside Hoddle's product — built for content velocity without sacrificing craft.</p>
+          <span class="read-more">View case study <span class="arrow"></span></span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SERVICES
+     ============================================================ -->
+<section class="section" id="services">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <div class="head-left">
+        <div class="eyebrow">Services</div>
+        <h2 class="display-2">What we <span class="italic">do.</span></h2>
+      </div>
+    </div>
+
+    <div class="services-block">
+
+      <div class="svc-row is-open" data-svc>
+        <div class="svc-head">
+          <span class="svc-num">01</span>
+          <h3 class="svc-title">Branding &amp; Strategy</h3>
+          <span class="svc-toggle" aria-hidden="true"></span>
+        </div>
+        <div class="svc-body">
+          <div class="svc-body-inner">
+            <span class="svc-spacer"></span>
+            <div class="svc-detail">
+              <strong>Crafting strategic branding for long-term success.</strong>
+              <p>We develop compelling brand identities and effective market strategies that elevate your brand and create lasting impact.</p>
+              <a href="#" class="svc-link">Learn more <span class="icon-btn no-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+            </div>
+            <div class="svc-image"><img src="assets/service-branding.jpg" alt="" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="svc-row" data-svc>
+        <div class="svc-head">
+          <span class="svc-num">02</span>
+          <h3 class="svc-title">Platform &amp; App Development</h3>
+          <span class="svc-toggle" aria-hidden="true"></span>
+        </div>
+        <div class="svc-body">
+          <div class="svc-body-inner">
+            <span class="svc-spacer"></span>
+            <div class="svc-detail">
+              <strong>Custom platforms built to scale.</strong>
+              <p>From concept to launch, we build robust, scalable, and secure platforms tailored to your business goals.</p>
+              <a href="#" class="svc-link">Learn more <span class="icon-btn no-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+            </div>
+            <div class="svc-image"><img src="assets/service-platform.jpg" alt="" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="svc-row" data-svc>
+        <div class="svc-head">
+          <span class="svc-num">03</span>
+          <h3 class="svc-title">Website &amp; E-Commerce Development</h3>
+          <span class="svc-toggle" aria-hidden="true"></span>
+        </div>
+        <div class="svc-body">
+          <div class="svc-body-inner">
+            <span class="svc-spacer"></span>
+            <div class="svc-detail">
+              <strong>Building your online presence.</strong>
+              <p>Our visually striking, responsive websites and e-commerce platforms engage your audience and drive conversions.</p>
+              <a href="#" class="svc-link">Learn more <span class="icon-btn no-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+            </div>
+            <div class="svc-image"><img src="assets/service-website.jpg" alt="" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="svc-row" data-svc>
+        <div class="svc-head">
+          <span class="svc-num">04</span>
+          <h3 class="svc-title">Data-Driven Optimisation</h3>
+          <span class="svc-toggle" aria-hidden="true"></span>
+        </div>
+        <div class="svc-body">
+          <div class="svc-body-inner">
+            <span class="svc-spacer"></span>
+            <div class="svc-detail">
+              <strong>Optimising performance with data insights.</strong>
+              <p>We use advanced analytics to enhance efficiency, boost ROI, and guide your business to better decision-making.</p>
+              <a href="#" class="svc-link">Learn more <span class="icon-btn no-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+            </div>
+            <div class="svc-image"><img src="assets/service-data.jpg" alt="" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="svc-row" data-svc>
+        <div class="svc-head">
+          <span class="svc-num">05</span>
+          <h3 class="svc-title">Search Engine &amp; App Store Optimisation</h3>
+          <span class="svc-toggle" aria-hidden="true"></span>
+        </div>
+        <div class="svc-body">
+          <div class="svc-body-inner">
+            <span class="svc-spacer"></span>
+            <div class="svc-detail">
+              <strong>Optimise your online visibility.</strong>
+              <p>We ensure your website and apps rank higher in search results and app stores, driving traffic and downloads.</p>
+              <a href="#" class="svc-link">Learn more <span class="icon-btn no-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+            </div>
+            <div class="svc-image"><img src="assets/service-search.jpg" alt="" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="svc-row" data-svc>
+        <div class="svc-head">
+          <span class="svc-num">06</span>
+          <h3 class="svc-title">Technical Innovation &amp; Automation</h3>
+          <span class="svc-toggle" aria-hidden="true"></span>
+        </div>
+        <div class="svc-body">
+          <div class="svc-body-inner">
+            <span class="svc-spacer"></span>
+            <div class="svc-detail">
+              <strong>Innovative automation solutions.</strong>
+              <p>We design and implement intelligent automation systems that enhance productivity and drive innovation.</p>
+              <a href="#" class="svc-link">Learn more <span class="icon-btn no-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+            </div>
+            <div class="svc-image"><img src="assets/project-automation.jpg" alt="" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="svc-row" data-svc>
+        <div class="svc-head">
+          <span class="svc-num">07</span>
+          <h3 class="svc-title">Bespoke IT Solutions</h3>
+          <span class="svc-toggle" aria-hidden="true"></span>
+        </div>
+        <div class="svc-body">
+          <div class="svc-body-inner">
+            <span class="svc-spacer"></span>
+            <div class="svc-detail">
+              <strong>Tailored IT solutions for your business.</strong>
+              <p>Our customised IT solutions address your specific challenges, providing the tools you need for long-term success.</p>
+              <a href="#" class="svc-link">Learn more <span class="icon-btn no-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+            </div>
+            <div class="svc-image"><img src="assets/service-bespoke.jpg" alt="" /></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="cta-inline">
+      <h2 class="display-2">Ready to elevate <span class="italic">your brand?</span></h2>
+      <p>Whether you need a new website, an engaging app, or a full-scale digital strategy, we're here to help.</p>
+      <a href="#contact" class="btn btn-primary">Let's chat <span class="arrow"></span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     LATEST PROJECTS — CAROUSEL
+     ============================================================ -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div class="head-left">
+        <div class="eyebrow">Portfolio</div>
+        <h2 class="display-2">Latest <span class="italic">projects.</span></h2>
+      </div>
+      <a href="#" class="btn btn-ghost">See all <span class="arrow"></span></a>
+    </div>
+
+    <div class="carousel-track" id="latestTrack">
+      <a href="#" class="carousel-card">
+        <div class="img"><img src="assets/project-bnkly.png" alt="" /></div>
+        <div class="title">Bnkly</div>
+        <div class="tagline">Fintech · Platform redesign</div>
+      </a>
+      <a href="#" class="carousel-card">
+        <div class="img"><img src="assets/project-blockchain.png" alt="" /></div>
+        <div class="title">Maal Monkeys</div>
+        <div class="tagline">NFT · Brand &amp; mint</div>
+      </a>
+      <a href="#" class="carousel-card">
+        <div class="img"><img src="assets/project-photographer.png" alt="" /></div>
+        <div class="title">Viking Cars</div>
+        <div class="tagline">Transport · App &amp; marketing</div>
+      </a>
+      <a href="#" class="carousel-card">
+        <div class="img"><img src="assets/project-ecommerce.png" alt="" /></div>
+        <div class="title">Shilaking</div>
+        <div class="tagline">E-commerce · Brand &amp; store</div>
+      </a>
+      <a href="#" class="carousel-card">
+        <div class="img"><img src="assets/project-hoddle.png" alt="" /></div>
+        <div class="title">Hoddle</div>
+        <div class="tagline">Fintech · Marketing site</div>
+      </a>
+      <a href="#" class="carousel-card">
+        <div class="img"><img src="assets/project-branding.jpg" alt="" /></div>
+        <div class="title">Studio Bespoke</div>
+        <div class="tagline">Branding · Identity system</div>
+      </a>
+    </div>
+
+    <div class="carousel-arrows">
+      <button class="icon-btn no-rotate" id="latestPrev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      <button class="icon-btn no-rotate" id="latestNext" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TESTIMONIALS
+     ============================================================ -->
+<section class="section testimonials">
+  <div class="container">
+    <div class="section-head">
+      <div class="head-left">
+        <div class="eyebrow">Testimonials</div>
+        <h2 class="display-2">From our <span class="italic">clients.</span></h2>
+      </div>
+    </div>
+
+    <div class="t-track-wrap">
+      <div class="t-track" id="tTrack">
+
+        <div class="t-card">
+          <h3 class="t-quote">A true partnership in innovation.</h3>
+          <p class="t-body">Partnering with Code &amp; Canvas has been a game-changer. Their collaborative approach helped us refine and enhance our architecture, platform, and mobile app. The expertise and support they brought to the table have been invaluable to our growth.</p>
+          <div class="t-author">
+            <div class="t-avatar"><img src="assets/avatar-hoddle.png" alt="" /></div>
+            <div>
+              <div class="t-name">Hoddle</div>
+              <div class="t-role">Fintech</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="t-card">
+          <h3 class="t-quote">Branding and e-commerce, done right.</h3>
+          <p class="t-body">From creating our brand identity to developing a top-notch dropshipping store, Code &amp; Canvas delivered outstanding results. They captured our vision perfectly and brought it to life.</p>
+          <div class="t-author">
+            <div class="t-avatar" style="background:#1d1d22"></div>
+            <div>
+              <div class="t-name">Shilaking</div>
+              <div class="t-role">E-commerce</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="t-card">
+          <h3 class="t-quote">A reliable partner in our success.</h3>
+          <p class="t-body">Code &amp; Canvas has been a critical partner in enhancing our telephone systems, driving our marketing efforts, and advancing our app development. Their collaborative approach and consistent support make them a valuable part of our team.</p>
+          <div class="t-author">
+            <div class="t-avatar" style="background:#1d1d22"></div>
+            <div>
+              <div class="t-name">Viking Cars</div>
+              <div class="t-role">Transport</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="t-card">
+          <h3 class="t-quote">Took our community from concept to live.</h3>
+          <p class="t-body">Code &amp; Canvas helped us launch the Maal Monkeys collection — strategy, brand, mint experience and community platform. Every milestone was hit and the work spoke for itself.</p>
+          <div class="t-author">
+            <div class="t-avatar"><img src="assets/avatar-maal.png" alt="" /></div>
+            <div>
+              <div class="t-name">Maal Monkeys</div>
+              <div class="t-role">NFT</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="t-controls">
+      <div class="t-dots" id="tDots"></div>
+      <div class="t-arrows">
+        <button class="icon-btn no-rotate" id="tPrev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+        <button class="icon-btn no-rotate" id="tNext" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CONTACT
+     ============================================================ -->
+<section class="section contact-section" id="contact">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="contact-info">
+        <div class="eyebrow">Contact</div>
+        <h2 class="display-1">Let's <span class="italic">chat.</span></h2>
+        <p class="lead">Ready to bring your vision to life? Whether you have a project in mind or just need expert advice, we're here to help you create something extraordinary.</p>
+
+        <div class="contact-meta">
+          <div>
+            <div class="key">London</div>
+            <div class="val">hello@codeandcanvas.agency<span class="dim">+44 (0)20 4524 1100</span></div>
+          </div>
+          <div>
+            <div class="key">Dubai</div>
+            <div class="val">dubai@codeandcanvas.agency<span class="dim">+971 4 XXX XXXX</span></div>
+          </div>
+        </div>
+      </div>
+
+      <form class="contact-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Sent — we will reply soon';">
+        <div class="form-row">
+          <div class="field">
+            <label>Name</label>
+            <input type="text" placeholder="Your name" required />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" placeholder="you@company.com" required />
+          </div>
+        </div>
+        <div class="field">
+          <label>Company</label>
+          <input type="text" placeholder="Company name" />
+        </div>
+        <div class="field">
+          <label>What can we help with?</label>
+          <select>
+            <option>Branding &amp; Strategy</option>
+            <option>Platform &amp; App Development</option>
+            <option>Website &amp; E-Commerce</option>
+            <option>Data-Driven Optimisation</option>
+            <option>SEO / ASO</option>
+            <option>Bespoke IT Solutions</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Project details</label>
+          <textarea placeholder="Tell us a little about what you're building…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 8px; align-self:flex-start;">Send message <span class="arrow"></span></button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     BLOG
+     ============================================================ -->
+<section class="section blog-section" id="blog">
+  <div class="container">
+    <div class="section-head">
+      <div class="head-left">
+        <div class="eyebrow">Blog</div>
+        <h2 class="display-2">Latest <span class="italic">articles.</span></h2>
+      </div>
+      <a href="#" class="btn btn-ghost">See all <span class="arrow"></span></a>
+    </div>
+
+    <div class="blog-grid">
+      <a href="#" class="blog-card">
+        <div class="img"><img src="assets/service-branding.jpg" alt="" /></div>
+        <div class="meta"><span>Branding</span><span>5 min read</span></div>
+        <h3>How to make your brand look great on your website</h3>
+      </a>
+      <a href="#" class="blog-card">
+        <div class="img"><img src="assets/service-website.jpg" alt="" /></div>
+        <div class="meta"><span>UI / UX</span><span>7 min read</span></div>
+        <h3>Font sizes in web design — the complete guide to follow</h3>
+      </a>
+      <a href="#" class="blog-card">
+        <div class="img"><img src="assets/service-data.jpg" alt="" /></div>
+        <div class="meta"><span>Design</span><span>4 min read</span></div>
+        <h3>8 design systems you can check out and download for free</h3>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="footer">
+  <div class="container">
+    <a href="contact.html" class="footer-cta-block" aria-label="Start a project — let's chat">
+      <div class="cta-row cta-row-top">
+        <span class="cta-eyebrow">— Start a project</span>
+        <span class="cta-meta">Avg. reply · 24h · London &amp; Dubai</span>
+      </div>
+
+      <div class="cta-marquee" aria-hidden="true">
+        <span class="cta-word">Let's</span>
+        <span class="cta-arrow">
+          <svg viewBox="0 0 80 24" fill="none" stroke="currentColor" stroke-width="1.4" preserveAspectRatio="none">
+            <path d="M2 12h74M64 4l12 8-12 8" />
+          </svg>
+        </span>
+        <span class="cta-word italic">make</span>
+        <span class="cta-word">something</span>
+        <span class="cta-word italic">extraordinary.</span>
+      </div>
+
+      <div class="cta-row cta-row-bot">
+        <div class="cta-contacts">
+          <span class="cta-contact"><span class="cta-contact-label">Email</span> contact@codeandcanvas.agency</span>
+          <span class="cta-divider"></span>
+          <span class="cta-contact"><span class="cta-contact-label">Tel</span> +44 (0)7535 101010</span>
+        </div>
+        <span class="cta-cta-pill">
+          <span class="cta-cta-text">Start the conversation</span>
+          <span class="cta-cta-arrow">↗</span>
+        </span>
+      </div>
+    </a>
+
+    <div class="footer-main">
+      <div class="footer-brand">
+        <div class="brand"><span>code</span><span class="ampersand">&amp;</span><span>canvas</span></div>
+        <p>Crafting cutting-edge digital experiences to grow businesses and transform brands.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Pages</h4>
+        <ul>
+          <li><a href="#">Home</a></li>
+          <li><a href="#services">Services</a></li>
+          <li><a href="#projects">Projects</a></li>
+          <li><a href="#blog">Blog</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="#services">Branding &amp; Strategy</a></li>
+          <li><a href="#services">Platform &amp; App Development</a></li>
+          <li><a href="#services">Website &amp; E-Commerce Development</a></li>
+          <li><a href="#services">Data-Driven Optimisation</a></li>
+          <li><a href="#services">Search &amp; App Store Optimisation</a></li>
+          <li><a href="#services">Technical Innovation &amp; Automation</a></li>
+          <li><a href="#services">Bespoke IT Solutions</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© Code &amp; Canvas 2026. London &amp; Dubai.</p>
+      <div class="socials">
+        <a href="#" class="social-link" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM8.34 17.34H5.67V9.67h2.67v7.67zM7 8.5a1.55 1.55 0 1 1 0-3.1 1.55 1.55 0 0 1 0 3.1zm11.34 8.84h-2.67v-3.74c0-.89-.02-2.04-1.24-2.04-1.24 0-1.43.97-1.43 1.97v3.81h-2.67V9.67h2.56v1.05h.04c.36-.68 1.23-1.4 2.53-1.4 2.71 0 3.21 1.78 3.21 4.1v3.92z"/></svg></a>
+        <a href="#" class="social-link" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.45 2.89h-2.34v6.99A10 10 0 0 0 22 12z"/></svg></a>
+        <a href="#" class="social-link" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 3H20.5l-6.5 7.43L21.5 21h-5.95l-4.66-6.1L5.5 21H2.5l6.95-7.95L2 3h6.1l4.21 5.56L17.53 3zm-1.04 16.2h1.65L7.62 4.71H5.85L16.49 19.2z"/></svg></a>
+        <a href="#" class="social-link" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.42.56.21.96.47 1.38.89.42.42.68.82.89 1.38.16.42.36 1.06.42 2.23.05 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.42 2.23-.21.56-.47.96-.89 1.38-.42.42-.82.68-1.38.89-.42.16-1.06.36-2.23.42-1.27.05-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.42-.56-.21-.96-.47-1.38-.89-.42-.42-.68-.82-.89-1.38-.16-.42-.36-1.06-.42-2.23-.05-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.42-2.23.21-.56.47-.96.89-1.38.42-.42.82-.68 1.38-.89.42-.16 1.06-.36 2.23-.42C8.42 2.18 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63a5.62 5.62 0 0 0-2.04 1.33A5.62 5.62 0 0 0 .77 4c-.3.76-.5 1.64-.56 2.91C.15 8.19.14 8.6.14 11.86c0 3.26.01 3.67.07 4.95.06 1.27.26 2.15.56 2.91a5.62 5.62 0 0 0 1.33 2.04 5.62 5.62 0 0 0 2.04 1.33c.76.3 1.64.5 2.91.56 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.62 5.62 0 0 0 2.04-1.33 5.62 5.62 0 0 0 1.33-2.04c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.62 5.62 0 0 0-1.33-2.04A5.62 5.62 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script>
+  // Reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('[data-reveal]').forEach(el => io.observe(el));
+
+  // Services accordion
+  document.querySelectorAll('[data-svc]').forEach(row => {
+    row.querySelector('.svc-head').addEventListener('click', () => {
+      const isOpen = row.classList.contains('is-open');
+      document.querySelectorAll('[data-svc]').forEach(r => r.classList.remove('is-open'));
+      if (!isOpen) row.classList.add('is-open');
+    });
+  });
+
+  // Latest carousel arrows
+  (function(){
+    const track = document.getElementById('latestTrack');
+    const prev = document.getElementById('latestPrev');
+    const next = document.getElementById('latestNext');
+    function step(){
+      const card = track.querySelector('.carousel-card');
+      return card ? card.offsetWidth + 24 : 320;
+    }
+    prev.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: 'smooth' }));
+    next.addEventListener('click', () => track.scrollBy({ left:  step(), behavior: 'smooth' }));
+  })();
+
+  // Testimonials slider
+  (function(){
+    const track = document.getElementById('tTrack');
+    const cards = track.querySelectorAll('.t-card');
+    const dotsWrap = document.getElementById('tDots');
+    const prev = document.getElementById('tPrev');
+    const next = document.getElementById('tNext');
+    let i = 0;
+
+    cards.forEach((_, idx) => {
+      const b = document.createElement('button');
+      b.className = 't-dot' + (idx === 0 ? ' is-active' : '');
+      b.addEventListener('click', () => go(idx));
+      dotsWrap.appendChild(b);
+    });
+    function go(n){
+      i = (n + cards.length) % cards.length;
+      track.style.transform = `translateX(-${i * 100}%)`;
+      dotsWrap.querySelectorAll('.t-dot').forEach((d, idx) => d.classList.toggle('is-active', idx === i));
+    }
+    prev.addEventListener('click', () => go(i - 1));
+    next.addEventListener('click', () => go(i + 1));
+    setInterval(() => go(i + 1), 7000);
+  })();
+</script>
+
+</body>
+</html>

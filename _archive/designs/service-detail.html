@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Branding &amp; Strategy — Code &amp; Canvas</title>
+<meta name="description" content="Branding & Strategy services from Code & Canvas — a London & Dubai digital agency." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="styles.css?v=1777097108676" />
+<link rel="stylesheet" href="pages.css?v=1777097108676" />
+</head>
+<body data-screen-label="Service Detail — Branding & Strategy">
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="brand" aria-label="Code & Canvas home">
+      <span>code</span><span class="ampersand">&amp;</span><span>canvas</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <a href="index.html">Home</a>
+      <div class="nav-dropdown">
+        <span class="nav-trigger is-active" tabindex="0">Services <span class="caret"></span></span>
+        <div class="nav-menu" role="menu">
+          <a href="service-detail.html">Branding &amp; Strategy</a>
+          <a href="service-detail.html">Platform &amp; App Development</a>
+          <a href="service-detail.html">Website &amp; E-Commerce Development</a>
+          <a href="service-detail.html">Data-Driven Optimisation</a>
+          <a href="service-detail.html">Search Engine &amp; App Store Optimisation</a>
+          <a href="service-detail.html">Technical Innovation &amp; Automation</a>
+          <a href="service-detail.html">Bespoke IT Solutions</a>
+        </div>
+      </div>
+      <a href="projects.html">Projects</a>
+      <a href="index.html#blog">Blog</a>
+      <a href="index.html#about">About</a>
+    </nav>
+
+    <div class="header-right">
+      <a href="index.html#contact" class="btn btn-primary">
+        Get in touch
+        <span class="arrow"></span>
+      </a>
+    </div>
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false">
+        <svg class="icon-burger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      </div>
+  </header>
+
+<!-- Mobile nav drawer -->
+<div class="mobile-nav" id="mobileNav" aria-hidden="true">
+  <a href="index.html">Home</a>
+  <span class="mn-group-label">Services</span>
+  <div class="mn-services">
+    <a href="services.html">Branding &amp; Strategy</a>
+    <a href="services.html">Platform &amp; App Development</a>
+    <a href="services.html">Website &amp; E-Commerce Development</a>
+    <a href="services.html">Data-Driven Optimisation</a>
+    <a href="services.html">Search Engine &amp; App Store Optimisation</a>
+    <a href="services.html">Technical Innovation &amp; Automation</a>
+    <a href="services.html">Bespoke IT Solutions</a>
+  </div>
+  <a href="projects.html">Projects</a>
+  <a href="blog.html">Blog</a>
+  <a href="about.html">About</a>
+  <a href="contact.html" class="mn-cta">Get in touch <span aria-hidden="true">↗</span></a>
+  <div class="mn-foot">London &amp; Dubai · contact@codeandcanvas.agency</div>
+</div>
+
+<script>
+(function(){
+  const t = document.getElementById('menuToggle');
+  const m = document.getElementById('mobileNav');
+  if (!t || !m) return;
+  function close(){ t.classList.remove('is-open'); m.classList.remove('is-open'); t.setAttribute('aria-expanded','false'); m.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+  function open(){ t.classList.add('is-open'); m.classList.add('is-open'); t.setAttribute('aria-expanded','true'); m.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
+  t.addEventListener('click', () => t.classList.contains('is-open') ? close() : open());
+  m.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
+</script>
+
+
+<!-- ============================================================
+     HERO — split layout (copy left / image right)
+     ============================================================ -->
+<section class="service-hero">
+  <div class="container">
+    <a href="services.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+      All services
+    </a>
+
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Service · 01 / 07</div>
+        <h1>Branding <span class="italic">&amp; Strategy.</span></h1>
+        <p class="lead">Create a powerful brand identity that captures your essence and resonates with your target audience.</p>
+
+        <div class="meta-grid">
+          <div>
+            <span class="stat-label">Category</span>
+            <a href="services.html" class="stat-value">Brand Design</a>
+          </div>
+          <div>
+            <span class="stat-label">Engagement</span>
+            <span class="stat-value">Project · Retainer</span>
+          </div>
+          <div>
+            <span class="stat-label">Typical duration</span>
+            <span class="stat-value">6 – 12 weeks</span>
+          </div>
+          <div>
+            <span class="stat-label">Studio</span>
+            <span class="stat-value">London &amp; Dubai</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-image">
+        <img src="assets/service-branding.jpg" alt="Branding & Strategy" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     WHAT WE OFFER — bulleted
+     ============================================================ -->
+<section>
+  <div class="container">
+    <div class="service-row">
+      <div class="row-head">
+        <span class="marker">— 01 / Capabilities</span>
+        <h2>What we <span class="italic">offer.</span></h2>
+      </div>
+      <div class="row-body">
+        <ul>
+          <li>
+            <strong>Brand Identity Creation</strong>
+            Develop a unique brand identity including logo design, colour schemes, and brand guidelines.
+          </li>
+          <li>
+            <strong>Market Positioning</strong>
+            Define and communicate your unique value proposition to stand out in the market.
+          </li>
+          <li>
+            <strong>Competitive Analysis</strong>
+            Use tools like SEMrush and Ahrefs to analyse competitors and identify market opportunities.
+          </li>
+          <li>
+            <strong>Strategic Planning</strong>
+            Create actionable strategies for brand growth, market positioning, and customer engagement.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- HOW IT WORKS — numbered -->
+    <div class="service-row">
+      <div class="row-head">
+        <span class="marker">— 02 / Process</span>
+        <h2>How it <span class="italic">works.</span></h2>
+      </div>
+      <div class="row-body">
+        <ol>
+          <li>
+            <strong>Discovery</strong>
+            In-depth consultation to understand your business and market environment.
+          </li>
+          <li>
+            <strong>Research &amp; Analysis</strong>
+            Perform market research and competitive analysis to inform branding strategy.
+          </li>
+          <li>
+            <strong>Brand Development</strong>
+            Create a comprehensive brand identity including visual elements and messaging.
+          </li>
+          <li>
+            <strong>Strategy Implementation</strong>
+            Develop and implement strategic plans to build and strengthen your brand.
+          </li>
+          <li>
+            <strong>Monitoring &amp; Adjustment</strong>
+            Continuously monitor brand performance and make adjustments as needed.
+          </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CTA
+     ============================================================ -->
+<section class="service-cta">
+  <div class="container">
+    <div class="eyebrow" style="justify-content: center; display: inline-flex; margin-bottom: 32px">Get started</div>
+    <h2>Ready to elevate <span class="italic">your brand?</span></h2>
+    <p>Whether you need a new website, an engaging app, or a full-scale digital strategy, we're here to help.</p>
+    <a href="index.html#contact" class="btn btn-primary">Let's chat <span class="arrow"></span></a>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-cta">
+      <h2 class="display-1">Want to start <span class="italic">a project?</span></h2>
+      <a href="index.html#contact" class="footer-cta-link">
+        <span class="italic">Let's chat</span>
+        <span class="icon-btn no-rotate" style="width:64px;height:64px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </div>
+
+    <div class="footer-main">
+      <div class="footer-brand">
+        <div class="brand"><span>code</span><span class="ampersand">&amp;</span><span>canvas</span></div>
+        <p>Crafting cutting-edge digital experiences to grow businesses and transform brands.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Pages</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="services.html">Services</a></li>
+          <li><a href="projects.html">Projects</a></li>
+          <li><a href="index.html#blog">Blog</a></li>
+          <li><a href="index.html#about">About</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Services</h4>
+        <ul>
+          <li><a href="service-detail.html">Branding &amp; Strategy</a></li>
+          <li><a href="service-detail.html">Platform &amp; App Development</a></li>
+          <li><a href="service-detail.html">Website &amp; E-Commerce Development</a></li>
+          <li><a href="service-detail.html">Data-Driven Optimisation</a></li>
+          <li><a href="service-detail.html">Search &amp; App Store Optimisation</a></li>
+          <li><a href="service-detail.html">Technical Innovation &amp; Automation</a></li>
+          <li><a href="service-detail.html">Bespoke IT Solutions</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© Code &amp; Canvas 2026. London &amp; Dubai.</p>
+      <div class="socials">
+        <a href="#" class="social-link" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM8.34 17.34H5.67V9.67h2.67v7.67zM7 8.5a1.55 1.55 0 1 1 0-3.1 1.55 1.55 0 0 1 0 3.1zm11.34 8.84h-2.67v-3.74c0-.89-.02-2.04-1.24-2.04-1.24 0-1.43.97-1.43 1.97v3.81h-2.67V9.67h2.56v1.05h.04c.36-.68 1.23-1.4 2.53-1.4 2.71 0 3.21 1.78 3.21 4.1v3.92z"/></svg></a>
+        <a href="#" class="social-link" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.51 1.49-3.9 3.78-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.45 2.89h-2.34v6.99A10 10 0 0 0 22 12z"/></svg></a>
+        <a href="#" class="social-link" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 3H20.5l-6.5 7.43L21.5 21h-5.95l-4.66-6.1L5.5 21H2.5l6.95-7.95L2 3h6.1l4.21 5.56L17.53 3zm-1.04 16.2h1.65L7.62 4.71H5.85L16.49 19.2z"/></svg></a>
+        <a href="#" class="social-link" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.42.56.21.96.47 1.38.89.42.42.68.82.89 1.38.16.42.36 1.06.42 2.23.05 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.42 2.23-.21.56-.47.96-.89 1.38-.42.42-.82.68-1.38.89-.42.16-1.06.36-2.23.42-1.27.05-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.42-.56-.21-.96-.47-1.38-.89-.42-.42-.68-.82-.89-1.38-.16-.42-.36-1.06-.42-2.23-.05-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.42-2.23.21-.56.47-.96.89-1.38.42-.42.82-.68 1.38-.89.42-.16 1.06-.36 2.23-.42C8.42 2.18 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63a5.62 5.62 0 0 0-2.04 1.33A5.62 5.62 0 0 0 .77 4c-.3.76-.5 1.64-.56 2.91C.15 8.19.14 8.6.14 11.86c0 3.26.01 3.67.07 4.95.06 1.27.26 2.15.56 2.91a5.62 5.62 0 0 0 1.33 2.04 5.62 5.62 0 0 0 2.04 1.33c.76.3 1.64.5 2.91.56 1.28.06 1.69.07 4.95.07s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56a5.62 5.62 0 0 0 2.04-1.33 5.62 5.62 0 0 0 1.33-2.04c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.62 5.62 0 0 0-1.33-2.04A5.62 5.62 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
