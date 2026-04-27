@@ -1,57 +1,63 @@
 (function () {
   function esc(s) {
-    if (!s) return "";
+    if (s === undefined || s === null) return "";
     return String(s)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
 
-  function cardMarkup(p) {
-    var href = "/projects/" + esc(p.slug);
-    var img = esc(p.coverImageUrl || "/images/placeholder.jpg");
-    var title = esc(p.title || "Project");
-    var tagline = esc(p.tagline || "");
-    var summary = esc(p.summary || "");
+  function pad2(n) { return n < 10 ? "0" + n : String(n); }
+
+  function tagsMarkup(tags) {
+    if (!tags || !tags.length) return "";
+    var arr = (tags || []).slice(0, 4);
     return (
-      '<div role="listitem" class="w-dyn-item">' +
-      '<a href="' +
-      href +
-      '" class="content-link project-item w-inline-block">' +
-      '<div class="image-wrapper project-item-image">' +
-      '<img loading="lazy" src="' +
-      img +
-      '" alt="' +
-      title +
-      '" class="_w-h-100 fit-cover project-item-image"/>' +
+      '<div class="project-tags">' +
+      arr.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("") +
+      "</div>"
+    );
+  }
+
+  function shortLabel(s) {
+    var t = String(s || "").trim();
+    if (!t) return "";
+    if (t.length > 22) return t.slice(0, 21).trim() + "…";
+    return t;
+  }
+
+  function cardMarkup(p, idx) {
+    var href = "/projects/" + esc(p.slug);
+    var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
+    var title = esc(p.title || "Project");
+    var summary = esc(p.summary || p.tagline || "");
+    var num = pad2((idx || 0) + 1) + " / " + esc(shortLabel(p.title || ""));
+    return (
+      '<a class="project-card" href="' + href + '" data-reveal>' +
+      '<div class="project-card-img" data-num="' + num + '">' +
+      '<img loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" />' +
       "</div>" +
-      '<div class="project-item-content">' +
-      '<div class="inner-container project-item-content---text">' +
-      "<div>" +
-      '<h2 class="display-4 color-neutral-100 mg-bottom-8px">' +
-      title +
-      "</h2>" +
-      (tagline ? '<p class="text-400 medium color-neutral-300 mg-bottom-16px">' + tagline + "</p>" : "") +
-      '<p class="color-neutral-400 mg-bottom-0">' +
-      summary +
-      "</p>" +
-      "</div></div>" +
-      '<div class="inner-container _54px">' +
-      '<div class="line-rounded-icon link-icon">\ue145</div>' +
-      "</div></div></a></div>"
+      '<div class="project-card-body">' +
+      tagsMarkup(p.tags) +
+      "<h3>" + title + "</h3>" +
+      (summary ? '<p class="summary">' + summary + "</p>" : "") +
+      '<span class="read-more">View case study <span class="arrow"></span></span>' +
+      "</div>" +
+      "</a>"
     );
   }
 
   function renderList(container, options) {
     options = options || {};
     var limit = options.limit || 50;
-    var featured = options.featured; // true | false | undefined
-    var orderByField = options.orderBy || "sortOrder"; // "sortOrder" | "date"
+    var featured = options.featured;
+    var orderByField = options.orderBy || "sortOrder";
     var orderDir = options.orderDir || (orderByField === "date" ? "desc" : "asc");
     if (!container || !window.firebase || !firebase.apps.length) {
       if (container)
         container.innerHTML =
-          '<p class="color-neutral-400">Projects are loading… If this persists, configure Firebase in js/firebase-config.js.</p>';
+          '<p class="text-mute">Projects are loading…</p>';
       return Promise.resolve();
     }
     var db = firebase.firestore();
@@ -63,39 +69,38 @@
       .then(function (snap) {
         if (snap.empty) {
           container.innerHTML =
-            '<p class="color-neutral-400">No published projects yet. Use the admin tools to add work or run the one-time seed API.</p>';
+            '<p class="text-mute">No published projects yet.</p>';
           return;
         }
         container.innerHTML = "";
+        var idx = 0;
         snap.forEach(function (doc) {
           var data = doc.data();
           data.id = doc.id;
-          container.insertAdjacentHTML("beforeend", cardMarkup(data));
+          container.insertAdjacentHTML("beforeend", cardMarkup(data, idx++));
         });
+        if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
+          SiteUI.rebindAfterDynamicMount(container);
+        }
       })
       .catch(function (err) {
         console.error(err);
         container.innerHTML =
-          '<p class="color-neutral-400">Could not load projects. Deploy Firestore indexes (firestore.indexes.json) and check the browser console.</p>';
+          '<p class="text-mute">Could not load projects.</p>';
       });
   }
 
-  function slideCardMarkup(p) {
+  function carouselCardMarkup(p) {
     var href = "/projects/" + esc(p.slug);
-    var img = esc(p.coverImageUrl || "/images/placeholder.jpg");
+    var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
     var title = esc(p.title || "Project");
     var tagline = esc(p.tagline || "");
-    var summary = esc(p.summary || "");
     return (
-      '<div class="cc-slide">' +
-      '<a href="' + href + '" style="display:block;text-decoration:none;color:inherit">' +
-      '<div class="cc-slide-img">' +
-      '<img loading="lazy" src="' + img + '" alt="' + title + '"/>' +
-      '</div>' +
-      '<p class="color-neutral-100" style="white-space:normal;margin:16px 0 0"><strong>' + title + '</strong></p>' +
-      (tagline ? '<p class="color-neutral-300" style="white-space:normal;margin:6px 0 0">' + tagline + '</p>' : '') +
-      '<p class="color-neutral-400" style="white-space:normal;margin:8px 0 0">' + summary + '</p>' +
-      '</a></div>'
+      '<a href="' + href + '" class="carousel-card">' +
+      '<div class="img"><img loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" /></div>' +
+      '<div class="title">' + title + "</div>" +
+      (tagline ? '<div class="tagline">' + tagline + "</div>" : "") +
+      "</a>"
     );
   }
 
@@ -114,35 +119,19 @@
     return q.get()
       .then(function (snap) {
         if (snap.empty) { sliderSection.style.display = "none"; return; }
-        // Replace the entire .testimonial-slider div with a custom carousel
-        var old = sliderSection.querySelector(".testimonial-slider");
-        if (!old) return;
-        var wrapper = document.createElement("div");
-        wrapper.className = "cc-carousel-wrapper";
-        var track = document.createElement("div");
-        track.className = "cc-carousel-track";
+        var track =
+          sliderSection.querySelector("[data-carousel-track]") ||
+          sliderSection.querySelector("#latestTrack") ||
+          sliderSection.querySelector(".carousel-track");
+        if (!track) return;
+        track.innerHTML = "";
         snap.forEach(function (doc) {
           var data = doc.data(); data.id = doc.id;
-          track.insertAdjacentHTML("beforeend", slideCardMarkup(data));
+          track.insertAdjacentHTML("beforeend", carouselCardMarkup(data));
         });
-        wrapper.appendChild(track);
-        // Original-style Webflow arrows outside the container
-        var arrowRow = document.createElement("div");
-        arrowRow.className = "cc-carousel-arrows";
-        arrowRow.innerHTML =
-          '<div class="cc-arrow-btn cc-arrow-left btn-circle-secondary circle-btn white"><div class="w-icon-slider-left"></div></div>' +
-          '<div class="cc-arrow-btn cc-arrow-right btn-circle-secondary circle-btn white right"><div class="icon right w-icon-slider-left"></div></div>';
-        wrapper.appendChild(arrowRow);
-        old.replaceWith(wrapper);
-        var btnL = arrowRow.querySelector(".cc-arrow-left");
-        var btnR = arrowRow.querySelector(".cc-arrow-right");
-        function slideWidth() {
-          var first = track.querySelector(".cc-slide");
-          if (!first) return 300;
-          return first.offsetWidth + 24;
+        if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
+          SiteUI.rebindAfterDynamicMount(sliderSection);
         }
-        btnL.addEventListener("click", function () { track.scrollBy({ left: -slideWidth(), behavior: "smooth" }); });
-        btnR.addEventListener("click", function () { track.scrollBy({ left: slideWidth(), behavior: "smooth" }); });
       })
       .catch(function (err) { console.error("slider load error", err); });
   }

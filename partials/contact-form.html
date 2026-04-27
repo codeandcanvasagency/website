@@ -23,6 +23,8 @@
           placeholder="Full name"
           type="text"
           id="cnc-contact-name"
+          autocomplete="name"
+          autocapitalize="words"
           required
         />
       </div>
@@ -34,6 +36,10 @@
           placeholder="Email address"
           type="email"
           id="cnc-contact-email"
+          autocomplete="email"
+          inputmode="email"
+          autocapitalize="off"
+          spellcheck="false"
           required
         />
       </div>
@@ -45,6 +51,7 @@
           placeholder="Company"
           type="text"
           id="cnc-contact-company"
+          autocomplete="organization"
           required
         />
       </div>
@@ -57,6 +64,7 @@
           required
           class="text-area w-input"
           rows="1"
+          autocomplete="off"
         ></textarea>
       </div>
       <div class="cnc-contact-form__actions">

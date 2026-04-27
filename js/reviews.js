@@ -1,37 +1,34 @@
 (function () {
   function esc(s) {
-    if (!s) return "";
+    if (s === undefined || s === null) return "";
     return String(s)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
 
-  function reviewSlideMarkup(r) {
+  function reviewCardMarkup(r) {
     var heading = esc(r.heading || "");
     var body = esc(r.body || "");
     var clientName = esc(r.clientName || "");
     var clientIndustry = esc(r.clientIndustry || "");
-    var avatarUrl = esc(r.avatarUrl || "/images/placeholder.jpg");
+    var avatarUrl = esc(r.avatarUrl || "");
+    var avatar = avatarUrl
+      ? '<img loading="lazy" decoding="async" src="' + avatarUrl + '" alt="' + clientName + '" />'
+      : "";
     return (
-      '<div class="w-slide">' +
-      '<div class="card testimonial-card">' +
-      '<div class="inner-container _650px---tablet">' +
-      '<div class="inner-container _874px">' +
-      '<h3 class="heading-h1-size testimonial-heading"><em>"' + heading + '"</em></h3>' +
-      '</div>' +
-      '<div class="inner-container _874px text">' +
-      '<div class="text-300 medium color-neutral-400">' + body + '</div>' +
-      '</div>' +
-      '<div class="inner-container _80 _100---mbl">' +
-      '<div class="flex-horizontal start testimonial-card-content-bottom">' +
-      '<div class="avatar-wrapper">' +
-      '<img loading="lazy" src="' + avatarUrl + '" alt="' + clientName + '" class="avatar-circle _72px _56px---mbl"/>' +
-      '</div>' +
-      '<div>' +
-      '<div class="text-400 bold color-neutral-100 mg-bottom-8px">' + clientName + '</div>' +
-      '<div class="text-300 medium color-neutral-400">' + clientIndustry + '</div>' +
-      '</div></div></div></div></div></div>'
+      '<div class="t-card">' +
+      (heading ? '<h3 class="t-quote">' + heading + "</h3>" : "") +
+      (body ? '<p class="t-body">' + body + "</p>" : "") +
+      '<div class="t-author">' +
+      '<div class="t-avatar">' + avatar + "</div>" +
+      "<div>" +
+      '<div class="t-name">' + clientName + "</div>" +
+      '<div class="t-role">' + clientIndustry + "</div>" +
+      "</div>" +
+      "</div>" +
+      "</div>"
     );
   }
 
@@ -44,17 +41,24 @@
       .get()
       .then(function (snap) {
         if (snap.empty) return;
-        var mask = sliderSection.querySelector(".w-slider-mask");
-        if (!mask) return;
-        mask.innerHTML = "";
+        var track =
+          sliderSection.querySelector("[data-testimonial-track]") ||
+          sliderSection.querySelector("#tTrack") ||
+          sliderSection.querySelector(".t-track");
+        if (!track) return;
+        track.innerHTML = "";
         snap.forEach(function (doc) {
           var data = doc.data();
-          mask.insertAdjacentHTML("beforeend", reviewSlideMarkup(data));
+          track.insertAdjacentHTML("beforeend", reviewCardMarkup(data));
         });
-        try {
-          if (window.jQuery) window.jQuery(window).trigger("resize");
-          if (window.Webflow && window.Webflow.require) window.Webflow.require("slider").redraw();
-        } catch (e) { /* noop */ }
+        if (window.SiteUI && SiteUI.refreshTestimonials) {
+          var rootEl = sliderSection.matches && sliderSection.matches("[data-testimonials]")
+            ? sliderSection
+            : sliderSection.querySelector("[data-testimonials]") || sliderSection;
+          SiteUI.refreshTestimonials(rootEl);
+        } else {
+          sliderSection.dispatchEvent(new CustomEvent("dots:render", { bubbles: true }));
+        }
       })
       .catch(function (err) {
         console.error("reviews load error", err);
