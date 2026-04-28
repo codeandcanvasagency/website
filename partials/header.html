@@ -1,15 +1,14 @@
 <header class="header" data-header>
   <div class="container header-inner">
     <a href="/" class="brand" aria-label="Code & Canvas home">
-      <img src="/images/codecanvaslogo1.png" srcset="/images/codecanvaslogo1-p-500.png 500w, /images/codecanvaslogo1.png 716w" sizes="(max-width: 640px) 28px, 36px" alt="Code & Canvas" class="brand-logo" decoding="async" />
+      <span>code</span><span class="ampersand">&amp;</span><span>canvas</span>
     </a>
 
     <nav class="nav" aria-label="Primary">
       <a href="/" data-nav-path="/">Home</a>
       <div class="nav-dropdown" data-nav-services>
-        <span class="nav-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">Services <span class="caret"></span></span>
+        <a href="/services" class="nav-trigger" data-nav-path="/services" aria-haspopup="true" aria-expanded="false">Services <span class="caret"></span></a>
         <div class="nav-menu" role="menu">
-          <a href="/services" data-nav-path="/services">All services</a>
           <a href="/services/branding-strategy" data-nav-path="/services/branding-strategy">Branding &amp; Strategy</a>
           <a href="/services/platform-app-development" data-nav-path="/services/platform-app-development">Platform &amp; App Development</a>
           <a href="/services/website-development" data-nav-path="/services/website-development">Website &amp; E-Commerce Development</a>
@@ -26,7 +25,7 @@
 
     <div class="header-right">
       <a href="/contact" class="btn btn-primary">
-        Get in touch
+        Let's chat
         <span class="arrow"></span>
       </a>
       <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">

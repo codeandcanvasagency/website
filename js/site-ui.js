@@ -87,27 +87,43 @@
     });
   }
 
-  // ---------------- Touch dropdown for services nav --------------------
+  // ---------------- Mobile services submenu toggle ----------------------
 
-  function bindTouchDropdown() {
-    if (!window.matchMedia || !window.matchMedia("(pointer: coarse)").matches) return;
-    var triggers = document.querySelectorAll(".nav-dropdown .nav-trigger");
-    triggers.forEach(function (t) {
-      var parent = t.parentElement;
-      t.addEventListener("click", function (e) {
-        e.preventDefault();
-        var open = parent.classList.toggle("is-open");
-        t.setAttribute("aria-expanded", open ? "true" : "false");
-      });
-    });
-    document.addEventListener("click", function (e) {
-      document.querySelectorAll(".nav-dropdown.is-open").forEach(function (dd) {
-        if (!dd.contains(e.target)) {
-          dd.classList.remove("is-open");
-          var trig = dd.querySelector(".nav-trigger");
-          if (trig) trig.setAttribute("aria-expanded", "false");
+  function bindMobileServicesToggle() {
+    document.querySelectorAll("[data-mn-services]").forEach(function (row) {
+      var btn = row.querySelector(".mn-services-toggle");
+      if (!btn) return;
+      var listId = btn.getAttribute("aria-controls");
+      var list = listId ? document.getElementById(listId) : row.nextElementSibling;
+      if (!list) return;
+
+      function setOpen(open) {
+        if (open) {
+          list.removeAttribute("hidden");
+          row.classList.add("is-open");
+          list.classList.add("is-open");
+        } else {
+          list.setAttribute("hidden", "");
+          row.classList.remove("is-open");
+          list.classList.remove("is-open");
         }
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+      }
+
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(btn.getAttribute("aria-expanded") !== "true");
       });
+
+      // Reset to collapsed whenever the mobile menu closes.
+      var menu = document.getElementById("mobileNav");
+      if (menu) {
+        var mo = new MutationObserver(function () {
+          if (!menu.classList.contains("is-open")) setOpen(false);
+        });
+        mo.observe(menu, { attributes: true, attributeFilter: ["class"] });
+      }
     });
   }
 
@@ -322,7 +338,7 @@
     includePartials().then(function () {
       highlightActiveNav();
       bindMobileMenu();
-      bindTouchDropdown();
+      bindMobileServicesToggle();
       bindScrollReveal();
       bindAccordion();
       bindCarousels();

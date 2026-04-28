@@ -1,8 +1,12 @@
 <div class="mobile-nav" id="mobileNav" aria-hidden="true" role="dialog" aria-label="Site navigation">
   <a href="/" data-nav-path="/">Home</a>
-  <span class="mn-group-label">Services</span>
-  <div class="mn-services">
-    <a href="/services" data-nav-path="/services">All services</a>
+  <div class="mn-services-row" data-mn-services>
+    <a href="/services" class="mn-services-link" data-nav-path="/services">Services</a>
+    <button type="button" class="mn-services-toggle" aria-expanded="false" aria-controls="mn-services-list" aria-label="Toggle services submenu">
+      <span class="mn-caret" aria-hidden="true"></span>
+    </button>
+  </div>
+  <div class="mn-services" id="mn-services-list" hidden>
     <a href="/services/branding-strategy" data-nav-path="/services/branding-strategy">Branding &amp; Strategy</a>
     <a href="/services/platform-app-development" data-nav-path="/services/platform-app-development">Platform &amp; App Development</a>
     <a href="/services/website-development" data-nav-path="/services/website-development">Website &amp; E-Commerce Development</a>
@@ -14,6 +18,6 @@
   <a href="/projects" data-nav-path="/projects">Projects</a>
   <a href="/blog" data-nav-path="/blog">Blog</a>
   <a href="/about" data-nav-path="/about">About</a>
-  <a href="/contact" class="mn-cta" data-nav-path="/contact">Get in touch <span aria-hidden="true">↗</span></a>
+  <a href="/contact" class="mn-cta" data-nav-path="/contact">Let's chat <span aria-hidden="true">↗</span></a>
   <div class="mn-foot">London &amp; Dubai · contact@codeandcanvas.agency</div>
 </div>

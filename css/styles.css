@@ -571,7 +571,6 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 }
 
 .project-card:first-child { border-top: 0; padding-top: 0; }
-.project-card:nth-child(even) .project-card-img { order: 2; }
 
 .project-card-img {
   position: relative;
@@ -676,7 +675,7 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   transition: color 280ms;
 }
 
-.svc-row:hover .svc-title { color: var(--paper); }
+.svc-row:hover .svc-title { color: var(--accent); }
 
 .svc-toggle {
   width: 40px;
@@ -1175,7 +1174,6 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   .hero-copy { padding-bottom: 0; }
   .hero-side-meta { display: none; }
   .project-card { grid-template-columns: 1fr; gap: 24px; }
-  .project-card:nth-child(even) .project-card-img { order: 0; }
   .svc-head { grid-template-columns: 60px 1fr auto; gap: 16px; }
   .svc-body-inner { grid-template-columns: 60px 1fr; gap: 16px; }
   .svc-image { grid-column: 2 / 3; margin-top: 24px; }
@@ -1550,19 +1548,86 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   display: block;
 }
 
+/* Mobile services row: link + toggle button (matches other mn rows) */
+.mobile-nav .mn-services-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line-100);
+}
+.mobile-nav .mn-services-row .mn-services-link {
+  flex: 1 1 auto;
+  display: block;
+  font-size: 36px;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--paper);
+  padding: 18px 0;
+  border-bottom: 0;
+}
+.mobile-nav .mn-services-row .mn-services-toggle {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line-200);
+  border-radius: 50%;
+  color: var(--paper);
+  cursor: pointer;
+  transition: transform 280ms cubic-bezier(0.2, 0.7, 0.2, 1), background 200ms, border-color 200ms;
+  padding: 0;
+}
+.mobile-nav .mn-services-row .mn-services-toggle:hover {
+  border-color: var(--paper);
+  background: rgba(245, 242, 237, 0.04);
+}
+.mobile-nav .mn-services-row .mn-services-toggle[aria-expanded="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink-900);
+}
+
+.mobile-nav .mn-caret {
+  width: 9px;
+  height: 9px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 280ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.mobile-nav .mn-services-row .mn-services-toggle[aria-expanded="true"] .mn-caret {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+/* Submenu list: hidden by default, expands below the row when toggled */
 .mobile-nav .mn-services {
   display: flex;
   flex-direction: column;
   gap: 4px;
   border-bottom: 1px solid var(--line-100);
-  padding-bottom: 12px;
-  margin-bottom: 12px;
+  padding: 8px 0 16px;
 }
+.mobile-nav .mn-services[hidden] { display: none; }
 .mobile-nav .mn-services a {
   font-size: 18px;
-  padding: 12px 0;
+  padding: 12px 0 12px 20px;
   border: none;
   color: var(--paper-dim);
+  position: relative;
+}
+.mobile-nav .mn-services a::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  background: var(--line-200);
 }
 
 .mobile-nav .mn-cta {
@@ -1599,3 +1664,155 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 /* Universal overflow guards */
 html, body { overflow-x: hidden; }
 img, svg, video { max-width: 100%; }
+
+/* ============================================================
+   PHASE 6 — home tweaks
+   ============================================================ */
+
+/* --- Hero: full-bleed image on the right half (desktop) --- */
+.hero-bleed-image {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-bleed-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.95) contrast(1.05);
+  display: block;
+}
+
+.hero-bleed-image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11,11,13,0) 60%, rgba(11,11,13,0.55) 100%);
+  pointer-events: none;
+}
+
+.hero-bleed-image .hero-image-overlay {
+  pointer-events: auto;
+}
+
+.hero .container { position: relative; z-index: 1; }
+.hero-side-meta { z-index: 2; }
+.hero-visual-mobile { display: none; }
+
+@media (max-width: 1024px) {
+  .hero-bleed-image { display: none; }
+  .hero-visual-mobile { display: block; }
+}
+
+/* --- Light services section (home + /services) ---
+   Cream background like testimonials; flip the dark-on-light text colors.
+   Works on any element with .services-light (e.g. .section.services-light
+   on home, .services-list.services-light on /services). */
+.services-light { background: var(--bone-50); color: var(--ink-900); }
+.services-light .eyebrow { color: var(--ink-700); }
+.services-light .eyebrow::before { background: var(--ink-700); }
+.services-light h2,
+.services-light .svc-title,
+.services-light .svc-detail strong { color: var(--ink-900); }
+.services-light .svc-detail p { color: rgba(11,11,13,0.7); }
+.services-light .svc-num { color: rgba(11,11,13,0.5); }
+.services-light .services-block { border-top-color: rgba(11,11,13,0.12); }
+.services-light .svc-row { border-bottom-color: rgba(11,11,13,0.12); }
+.services-light .svc-toggle { color: var(--ink-900); border-color: rgba(11,11,13,0.2); }
+.services-light .svc-row.is-open .svc-toggle {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink-900);
+}
+.services-light .svc-link { color: var(--ink-900); }
+.services-light .svc-link .icon-btn { border-color: rgba(11,11,13,0.2); color: var(--ink-900); }
+.services-light .svc-link .icon-btn:hover { background: var(--ink-900); color: var(--paper); border-color: var(--ink-900); }
+.services-light .btn-ghost { color: var(--ink-900); border-color: rgba(11,11,13,0.2); }
+.services-light .btn-ghost:hover { border-color: var(--ink-900); background: rgba(11,11,13,0.04); }
+.services-light .cta-inline p { color: rgba(11,11,13,0.7); }
+
+/* Tag pills inside the accordion expanded body */
+.svc-detail .svc-tags { margin: 4px 0 4px; }
+.services-light .svc-tags span {
+  color: rgba(11,11,13,0.6);
+  border-color: rgba(11,11,13,0.18);
+}
+
+/* In-accordion CTA button alignment (rounded primary) */
+.svc-detail .btn { align-self: flex-start; margin-top: 4px; }
+
+/* --- Carousel cards: 3-line description preview --- */
+.carousel-card .summary {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--paper-dim);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.carousel-card .card-meta {
+  display: flex;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper-mute);
+}
+
+/* --- Footer brand contact list --- */
+.footer-brand-contact {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--paper-dim);
+}
+
+.footer-brand-contact a { color: var(--paper-dim); text-decoration: none; }
+.footer-brand-contact a:hover { color: var(--paper); }
+
+/* --- Footer CTA block (cta-inline pattern) --- */
+.cta-inline.footer-cta-inline {
+  margin-top: 0;
+  padding: 96px 0 80px;
+  border-bottom: 1px solid var(--line-100);
+  max-width: 720px;
+}
+
+.cta-inline.footer-cta-inline .eyebrow { margin-bottom: 24px; }
+.cta-inline.footer-cta-inline p { color: var(--paper-dim); }
+.cta-inline.footer-cta-inline .btn { margin-top: 4px; }
+
+/* Make sure the eyebrow underline still renders on the centered cta-inline */
+.cta-inline .eyebrow { display: inline-flex; }
+
+@media (max-width: 640px) {
+  .cta-inline.footer-cta-inline { padding: 64px 0 56px; }
+  .footer-brand-contact { font-size: 13px; }
+}
+
+/* --- Home contact card: simplified to email-only --- */
+.contact-info .contact-meta { gap: 16px; }
+.contact-info .contact-meta .val a {
+  color: var(--paper);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-200);
+  padding-bottom: 2px;
+  transition: color 200ms, border-color 200ms;
+}
+.contact-info .contact-meta .val a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+

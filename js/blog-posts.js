@@ -18,45 +18,56 @@
     return mins + " min read";
   }
 
-  function blogCardMarkup(p) {
+  function summaryFor(p) {
+    if (p.summary) return String(p.summary);
+    if (p.excerpt) return String(p.excerpt);
+    var body = String(p.body || p.content || "");
+    if (!body) return "";
+    var firstPara = body.split(/\n\s*\n/)[0] || body;
+    return firstPara.replace(/<[^>]+>/g, "").slice(0, 220);
+  }
+
+  function carouselCardMarkup(p) {
     var href = "/blog/" + esc(p.slug);
     var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
     var title = esc(p.title || "Blog Post");
+    var summary = esc(summaryFor(p));
     var category = esc(p.category || "");
     var read = readMinutes(p);
+    var meta = [category, read].filter(Boolean).map(function (m) { return "<span>" + m + "</span>"; }).join("");
     return (
-      '<a class="blog-card" href="' + href + '" data-reveal>' +
+      '<a href="' + href + '" class="carousel-card">' +
       '<div class="img"><img loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" /></div>' +
-      '<div class="meta">' +
-      (category ? "<span>" + category + "</span>" : "") +
-      (read ? "<span>" + read + "</span>" : "") +
-      "</div>" +
-      "<h3>" + title + "</h3>" +
+      (meta ? '<div class="card-meta">' + meta + "</div>" : "") +
+      '<div class="title">' + title + "</div>" +
+      (summary ? '<p class="summary">' + summary + "</p>" : "") +
       "</a>"
     );
   }
 
-  function renderBlogCarousel(container) {
-    if (!container || !window.firebase || !firebase.apps.length) return Promise.resolve();
+  function renderBlogCarousel(sectionOrContainer) {
+    if (!sectionOrContainer || !window.firebase || !firebase.apps.length) return Promise.resolve();
     var db = firebase.firestore();
     return db.collection("blog_posts")
       .where("published", "==", true)
       .orderBy("date", "desc")
-      .limit(6)
+      .limit(8)
       .get()
       .then(function (snap) {
-        if (snap.empty) { container.innerHTML = ""; return; }
-        if (!container.classList.contains("blog-grid")) {
-          container.classList.add("blog-grid");
-        }
-        container.innerHTML = "";
+        if (snap.empty) { sectionOrContainer.style.display = "none"; return; }
+        var track =
+          sectionOrContainer.querySelector("[data-carousel-track]") ||
+          sectionOrContainer.querySelector("#blogTrack") ||
+          sectionOrContainer.querySelector(".carousel-track") ||
+          sectionOrContainer;
+        track.innerHTML = "";
         snap.forEach(function (doc) {
           var data = doc.data();
           data.id = doc.id;
-          container.insertAdjacentHTML("beforeend", blogCardMarkup(data));
+          track.insertAdjacentHTML("beforeend", carouselCardMarkup(data));
         });
         if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
-          SiteUI.rebindAfterDynamicMount(container);
+          SiteUI.rebindAfterDynamicMount(sectionOrContainer);
         }
       })
       .catch(function (err) { console.error("blog load error", err); });
