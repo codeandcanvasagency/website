@@ -305,27 +305,6 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   min-height: 44px;
 }
 
-.nav-trigger-toggle {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--r-pill);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--paper-dim);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: color 200ms, background 200ms, border-color 200ms;
-}
-
-.nav-trigger-toggle:hover {
-  color: var(--paper);
-  background: rgba(245, 242, 237, 0.04);
-}
-
-.nav-trigger-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-
 .nav a:hover, .nav .nav-trigger:hover {
   color: var(--paper);
   background: rgba(245, 242, 237, 0.04);
@@ -370,8 +349,6 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   transform: translateY(0);
   transition: opacity 220ms, visibility 0s, transform 220ms;
 }
-
-.nav-dropdown.is-open .nav-trigger-toggle .caret { transform: translateY(0px) rotate(225deg); }
 
 .nav-menu a {
   padding: 12px 14px;
@@ -698,7 +675,7 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   transition: color 280ms;
 }
 
-.svc-row:hover .svc-title { color: var(--paper); }
+.svc-row:hover .svc-title { color: var(--accent); }
 
 .svc-toggle {
   width: 40px;
@@ -1571,19 +1548,86 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   display: block;
 }
 
+/* Mobile services row: link + toggle button (matches other mn rows) */
+.mobile-nav .mn-services-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line-100);
+}
+.mobile-nav .mn-services-row .mn-services-link {
+  flex: 1 1 auto;
+  display: block;
+  font-size: 36px;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--paper);
+  padding: 18px 0;
+  border-bottom: 0;
+}
+.mobile-nav .mn-services-row .mn-services-toggle {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line-200);
+  border-radius: 50%;
+  color: var(--paper);
+  cursor: pointer;
+  transition: transform 280ms cubic-bezier(0.2, 0.7, 0.2, 1), background 200ms, border-color 200ms;
+  padding: 0;
+}
+.mobile-nav .mn-services-row .mn-services-toggle:hover {
+  border-color: var(--paper);
+  background: rgba(245, 242, 237, 0.04);
+}
+.mobile-nav .mn-services-row .mn-services-toggle[aria-expanded="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ink-900);
+}
+
+.mobile-nav .mn-caret {
+  width: 9px;
+  height: 9px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 280ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.mobile-nav .mn-services-row .mn-services-toggle[aria-expanded="true"] .mn-caret {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+/* Submenu list: hidden by default, expands below the row when toggled */
 .mobile-nav .mn-services {
   display: flex;
   flex-direction: column;
   gap: 4px;
   border-bottom: 1px solid var(--line-100);
-  padding-bottom: 12px;
-  margin-bottom: 12px;
+  padding: 8px 0 16px;
 }
+.mobile-nav .mn-services[hidden] { display: none; }
 .mobile-nav .mn-services a {
   font-size: 18px;
-  padding: 12px 0;
+  padding: 12px 0 12px 20px;
   border: none;
   color: var(--paper-dim);
+  position: relative;
+}
+.mobile-nav .mn-services a::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  background: var(--line-200);
 }
 
 .mobile-nav .mn-cta {
@@ -1667,29 +1711,41 @@ img, svg, video { max-width: 100%; }
 }
 
 /* --- Light services section (home + /services) ---
-   Cream background like testimonials; flip the dark-on-light text colors. */
-.section.services-light { background: var(--bone-50); color: var(--ink-900); }
-.section.services-light .eyebrow { color: var(--ink-700); }
-.section.services-light .eyebrow::before { background: var(--ink-700); }
-.section.services-light h2,
-.section.services-light .svc-title,
-.section.services-light .svc-detail strong { color: var(--ink-900); }
-.section.services-light .svc-detail p { color: rgba(11,11,13,0.7); }
-.section.services-light .svc-num { color: rgba(11,11,13,0.5); }
-.section.services-light .services-block { border-top-color: rgba(11,11,13,0.12); }
-.section.services-light .svc-row { border-bottom-color: rgba(11,11,13,0.12); }
-.section.services-light .svc-toggle { color: var(--ink-900); border-color: rgba(11,11,13,0.2); }
-.section.services-light .svc-row.is-open .svc-toggle {
+   Cream background like testimonials; flip the dark-on-light text colors.
+   Works on any element with .services-light (e.g. .section.services-light
+   on home, .services-list.services-light on /services). */
+.services-light { background: var(--bone-50); color: var(--ink-900); }
+.services-light .eyebrow { color: var(--ink-700); }
+.services-light .eyebrow::before { background: var(--ink-700); }
+.services-light h2,
+.services-light .svc-title,
+.services-light .svc-detail strong { color: var(--ink-900); }
+.services-light .svc-detail p { color: rgba(11,11,13,0.7); }
+.services-light .svc-num { color: rgba(11,11,13,0.5); }
+.services-light .services-block { border-top-color: rgba(11,11,13,0.12); }
+.services-light .svc-row { border-bottom-color: rgba(11,11,13,0.12); }
+.services-light .svc-toggle { color: var(--ink-900); border-color: rgba(11,11,13,0.2); }
+.services-light .svc-row.is-open .svc-toggle {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--ink-900);
 }
-.section.services-light .svc-link { color: var(--ink-900); }
-.section.services-light .svc-link .icon-btn { border-color: rgba(11,11,13,0.2); color: var(--ink-900); }
-.section.services-light .svc-link .icon-btn:hover { background: var(--ink-900); color: var(--paper); border-color: var(--ink-900); }
-.section.services-light .btn-ghost { color: var(--ink-900); border-color: rgba(11,11,13,0.2); }
-.section.services-light .btn-ghost:hover { border-color: var(--ink-900); background: rgba(11,11,13,0.04); }
-.section.services-light .cta-inline p { color: rgba(11,11,13,0.7); }
+.services-light .svc-link { color: var(--ink-900); }
+.services-light .svc-link .icon-btn { border-color: rgba(11,11,13,0.2); color: var(--ink-900); }
+.services-light .svc-link .icon-btn:hover { background: var(--ink-900); color: var(--paper); border-color: var(--ink-900); }
+.services-light .btn-ghost { color: var(--ink-900); border-color: rgba(11,11,13,0.2); }
+.services-light .btn-ghost:hover { border-color: var(--ink-900); background: rgba(11,11,13,0.04); }
+.services-light .cta-inline p { color: rgba(11,11,13,0.7); }
+
+/* Tag pills inside the accordion expanded body */
+.svc-detail .svc-tags { margin: 4px 0 4px; }
+.services-light .svc-tags span {
+  color: rgba(11,11,13,0.6);
+  border-color: rgba(11,11,13,0.18);
+}
+
+/* In-accordion CTA button alignment (rounded primary) */
+.svc-detail .btn { align-self: flex-start; margin-top: 4px; }
 
 /* --- Carousel cards: 3-line description preview --- */
 .carousel-card .summary {

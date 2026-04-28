@@ -545,69 +545,10 @@
    ============================================================ */
 
 .services-list {
-  padding: 0 0 var(--section-y);
+  padding: var(--section-y) 0;
 }
 
-.services-list .index-head {
-  display: flex;
-  justify-content: space-between;
-  padding: 80px 0 40px;
-  border-bottom: 1px solid var(--line-100);
-}
-
-.services-list .index-head .label {
-  font-family: var(--mono);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--paper-dim);
-}
-
-.svc-item {
-  display: grid;
-  grid-template-columns: 80px 1fr 60px;
-  gap: 48px;
-  align-items: start;
-  padding: 48px 0;
-  border-bottom: 1px solid var(--line-100);
-  text-decoration: none;
-  color: inherit;
-  transition: padding .35s ease, background .35s ease;
-  position: relative;
-}
-
-.svc-item:hover {
-  padding-left: 24px;
-  padding-right: 24px;
-}
-
-.services-list .svc-num {
-  font-family: var(--mono);
-  font-size: 13px;
-  letter-spacing: 0.18em;
-  color: var(--paper-dim);
-  padding-top: 18px;
-  transition: color .25s ease;
-}
-
-.svc-item:hover .svc-num { color: var(--accent); }
-
-.svc-body h3 {
-  font-size: clamp(32px, 4vw, 56px);
-  letter-spacing: -0.03em;
-  line-height: 1.04;
-  margin: 0 0 18px;
-  text-wrap: balance;
-}
-
-.svc-body p {
-  color: var(--paper-mute);
-  max-width: 60ch;
-  font-size: 17px;
-  line-height: 1.55;
-  margin: 0 0 24px;
-}
-
+/* Tag pills — used inside .svc-detail (accordion expanded body) */
 .svc-tags {
   display: flex;
   flex-wrap: wrap;
@@ -623,39 +564,6 @@
   border: 1px solid var(--line-100);
   padding: 8px 12px;
   border-radius: 999px;
-}
-
-.svc-arrow {
-  width: 56px;
-  height: 56px;
-  border: 1px solid var(--line-300);
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--paper);
-  margin-top: 8px;
-  transition: all .3s ease;
-  flex-shrink: 0;
-  justify-self: end;
-}
-.svc-arrow svg { width: 18px; height: 18px; }
-
-.svc-item:hover .svc-arrow {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--ink-900);
-  transform: rotate(0deg) translate(2px, -2px);
-}
-
-@media (max-width: 900px) {
-  .svc-item {
-    grid-template-columns: 56px 1fr;
-    gap: 16px;
-    padding: 36px 0;
-  }
-  .svc-arrow { display: none; }
-  .services-list .svc-num { padding-top: 8px; font-size: 11px; }
 }
 
 /* ---------- Engagement cards (3-up) ---------------------------- */
