@@ -21,9 +21,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20260427a" />
-<link rel="stylesheet" href="/css/pages.css?v=20260427a" />
-<link rel="stylesheet" href="/css/contact-form.css?v=20260427a" />
+<link rel="stylesheet" href="/css/styles.css?v=20260428a" />
+<link rel="stylesheet" href="/css/pages.css?v=20260428a" />
+<link rel="stylesheet" href="/css/contact-form.css?v=20260428a" />
 </head>
 <body data-screen-label="Home">
 
@@ -32,15 +32,21 @@
 
 <!-- HERO -->
 <section class="section hero">
+  <div class="hero-bleed-image" aria-hidden="true">
+    <img src="/images/pexels-harold-vasquez-853421-2653362-20copy.jpg" alt="" decoding="async" />
+    <div class="hero-image-overlay">
+      <span><span class="dot"></span>Live · code &amp; canvas studios</span>
+      <span>London &amp; Dubai</span>
+    </div>
+  </div>
   <div class="container">
     <div class="hero-grid">
       <div class="hero-copy" data-reveal>
         <div class="eyebrow">London &amp; Dubai · Innovating where creativity meets technology</div>
 
         <h1 class="display-1">
-          London <span class="italic">&amp;</span> Dubai's <br/>
-          <span class="underline-word">leading&nbsp;</span>digital <br/>
-          <span class="italic">agency.</span>
+          London &amp; Dubai's <br/>
+          <span class="italic">leading digital agency.</span>
         </h1>
 
         <p class="lead">Crafting cutting-edge digital experiences to grow businesses and transform brands.</p>
@@ -66,9 +72,9 @@
         </div>
       </div>
 
-      <div class="hero-visual" data-reveal>
+      <div class="hero-visual hero-visual-mobile" data-reveal>
         <div class="hero-image-frame">
-          <img src="/images/pexels-harold-vasquez-853421-2653362-20copy.jpg" alt="Code &amp; Canvas studio" decoding="async" />
+          <img src="/images/pexels-harold-vasquez-853421-2653362-20copy.jpg" alt="Code &amp; Canvas studio" loading="lazy" decoding="async" />
           <div class="hero-image-overlay">
             <span><span class="dot"></span>Live · code &amp; canvas studios</span>
             <span>London &amp; Dubai</span>
@@ -87,7 +93,6 @@
   <div class="container">
     <div class="partners-head">
       <div class="eyebrow">Trusted partner services</div>
-      <span class="eyebrow" style="opacity:0.6">10 platforms · enterprise grade</span>
     </div>
     <div class="logo-marquee">
       <div class="logo-track">
@@ -127,7 +132,7 @@
 </section>
 
 <!-- SERVICES -->
-<section class="section" id="services">
+<section class="section services-light" id="services">
   <div class="container">
     <div class="section-head" data-reveal>
       <div class="head-left">
@@ -139,7 +144,7 @@
 
     <div class="services-block">
 
-      <div class="svc-row is-open" data-svc>
+      <div class="svc-row" data-svc>
         <div class="svc-head">
           <span class="svc-num">01</span>
           <h3 class="svc-title">Branding &amp; Strategy</h3>
@@ -337,12 +342,7 @@
 
         <div class="contact-meta">
           <div>
-            <div class="key">London &amp; Dubai</div>
-            <div class="val">contact@codeandcanvas.agency<span class="dim">+44 (0)7535 101010</span></div>
-          </div>
-          <div>
-            <div class="key">Office</div>
-            <div class="val">268 Bath Road, Slough<span class="dim">SL1 4DX, United Kingdom</span></div>
+            <div class="val"><a href="mailto:contact@codeandcanvas.agency">contact@codeandcanvas.agency</a></div>
           </div>
         </div>
       </div>
@@ -353,7 +353,7 @@
 </section>
 
 <!-- BLOG -->
-<section class="section blog-section" id="blog">
+<section class="section blog-section" id="cc-blog-section" data-carousel="blogTrack">
   <div class="container">
     <div class="section-head">
       <div class="head-left">
@@ -363,7 +363,12 @@
       <a href="/blog" class="btn btn-ghost">See all <span class="arrow"></span></a>
     </div>
 
-    <div id="cc-blog-carousel" class="blog-grid"></div>
+    <div class="carousel-track" id="blogTrack" data-carousel-track></div>
+
+    <div class="carousel-arrows">
+      <button class="icon-btn no-rotate" data-carousel-prev aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      <button class="icon-btn no-rotate" data-carousel-next aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
   </div>
 </section>
 
@@ -372,13 +377,13 @@
 <!-- Firebase + UI scripts -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="/js/firebase-config.js?v=20260427a"></script>
-<script src="/js/firebase-app.js?v=20260427a"></script>
-<script src="/js/site-ui.js?v=20260427a"></script>
-<script src="/js/projects-list.js?v=20260427a"></script>
-<script src="/js/reviews.js?v=20260427a"></script>
-<script src="/js/blog-posts.js?v=20260427a"></script>
-<script src="/js/contact-form.js?v=20260427a"></script>
+<script src="/js/firebase-config.js?v=20260428a"></script>
+<script src="/js/firebase-app.js?v=20260428a"></script>
+<script src="/js/site-ui.js?v=20260428a"></script>
+<script src="/js/projects-list.js?v=20260428a"></script>
+<script src="/js/reviews.js?v=20260428a"></script>
+<script src="/js/blog-posts.js?v=20260428a"></script>
+<script src="/js/contact-form.js?v=20260428a"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   var featured = document.getElementById("cc-home-projects");
@@ -390,8 +395,8 @@ document.addEventListener("DOMContentLoaded", function () {
   var reviewsSection = document.getElementById("cc-testimonials");
   if (reviewsSection) window.ccReviews.renderReviews(reviewsSection);
 
-  var blogCarousel = document.getElementById("cc-blog-carousel");
-  if (blogCarousel) window.ccBlog.renderBlogCarousel(blogCarousel);
+  var blogSection = document.getElementById("cc-blog-section");
+  if (blogSection) window.ccBlog.renderBlogCarousel(blogSection);
 });
 </script>
 </body>

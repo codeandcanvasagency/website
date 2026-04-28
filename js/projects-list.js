@@ -94,12 +94,12 @@
     var href = "/projects/" + esc(p.slug);
     var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
     var title = esc(p.title || "Project");
-    var tagline = esc(p.tagline || "");
+    var summary = esc(p.summary || p.tagline || "");
     return (
       '<a href="' + href + '" class="carousel-card">' +
       '<div class="img"><img loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" /></div>' +
       '<div class="title">' + title + "</div>" +
-      (tagline ? '<div class="tagline">' + tagline + "</div>" : "") +
+      (summary ? '<p class="summary">' + summary + "</p>" : "") +
       "</a>"
     );
   }
