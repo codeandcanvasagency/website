@@ -91,21 +91,20 @@
 
   function bindTouchDropdown() {
     if (!window.matchMedia || !window.matchMedia("(pointer: coarse)").matches) return;
-    var triggers = document.querySelectorAll(".nav-dropdown .nav-trigger");
-    triggers.forEach(function (t) {
-      var parent = t.parentElement;
-      t.addEventListener("click", function (e) {
-        e.preventDefault();
+    var toggles = document.querySelectorAll(".nav-dropdown .nav-trigger-toggle");
+    toggles.forEach(function (btn) {
+      var parent = btn.parentElement;
+      btn.addEventListener("click", function () {
         var open = parent.classList.toggle("is-open");
-        t.setAttribute("aria-expanded", open ? "true" : "false");
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
       });
     });
     document.addEventListener("click", function (e) {
       document.querySelectorAll(".nav-dropdown.is-open").forEach(function (dd) {
         if (!dd.contains(e.target)) {
           dd.classList.remove("is-open");
-          var trig = dd.querySelector(".nav-trigger");
-          if (trig) trig.setAttribute("aria-expanded", "false");
+          var btn = dd.querySelector(".nav-trigger-toggle");
+          if (btn) btn.setAttribute("aria-expanded", "false");
         }
       });
     });
