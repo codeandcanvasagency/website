@@ -54,6 +54,7 @@
       var body = {
         name: (form.querySelector("#cnc-contact-name") || {}).value || "",
         email: (form.querySelector("#cnc-contact-email") || {}).value || "",
+        phone: (form.querySelector("#cnc-contact-phone") || {}).value || "",
         company: (form.querySelector("#cnc-contact-company") || {}).value || "",
         message: (form.querySelector("#cnc-contact-message") || {}).value || "",
         website: (form.querySelector('input[name="website"]') || {}).value || "",

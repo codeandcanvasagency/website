@@ -69,6 +69,7 @@ exports.contact = onRequest(async (req, res) => {
 
   const name = normalizeText(req.body?.name, 120);
   const email = normalizeText(req.body?.email, 190).toLowerCase();
+  const phone = normalizeText(req.body?.phone, 60);
   const company = normalizeText(req.body?.company, 140);
   const message = normalizeText(req.body?.message, 5000);
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -82,6 +83,7 @@ exports.contact = onRequest(async (req, res) => {
     await db.collection("contact_submissions").add({
       name,
       email,
+      phone,
       company,
       message,
       source: "website",
@@ -646,6 +648,141 @@ exports.seedProjects = onRequest(async (req, res) => {
     });
   } catch (error) {
     logger.error("seed failed", error);
+    res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+
+exports.backfillCompanyReviews = onRequest(async (req, res) => {
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "method_not_allowed" });
+    return;
+  }
+
+  const secret = process.env.SEED_SECRET || "";
+  if (!secret || req.headers["x-seed-secret"] !== secret) {
+    res.status(403).json({ ok: false, error: "forbidden" });
+    return;
+  }
+
+  try {
+    const ts = admin.firestore.FieldValue.serverTimestamp();
+
+    const [companiesSnap, reviewsSnap] = await Promise.all([
+      db.collection("companies").get(),
+      db.collection("reviews").select("companyId").get(),
+    ]);
+
+    const companyIds = [];
+    companiesSnap.forEach((doc) => companyIds.push(doc.id));
+
+    const companyIdsWithAnyReview = new Set();
+    reviewsSnap.forEach((doc) => {
+      const companyId = (doc.data() || {}).companyId;
+      if (typeof companyId === "string" && companyId.trim()) companyIdsWithAnyReview.add(companyId.trim());
+    });
+
+    const missing = companyIds.filter((id) => !companyIdsWithAnyReview.has(id));
+    const created = [];
+
+    // Firestore batch limit is 500 operations.
+    for (let i = 0; i < missing.length; i += 450) {
+      const chunk = missing.slice(i, i + 450);
+      const batch = db.batch();
+      for (const companyId of chunk) {
+        const cDoc = await db.collection("companies").doc(companyId).get();
+        const c = cDoc.data() || {};
+
+        const reviewId = `${companyId}-auto`;
+        batch.set(
+          db.collection("reviews").doc(reviewId),
+          {
+            companyId,
+            clientName: c.name || companyId,
+            clientIndustry: c.industry || "",
+            avatarUrl: c.logoUrl || "",
+            heading: "Review pending",
+            body: "This review is a placeholder draft created automatically. Edit and publish it in the admin panel.",
+            sortOrder: 9999,
+            published: false,
+            updatedAt: ts,
+          },
+          { merge: true },
+        );
+        created.push(reviewId);
+      }
+      await batch.commit();
+    }
+
+    res.status(200).json({
+      ok: true,
+      companies: companyIds.length,
+      companiesWithReview: companyIds.length - missing.length,
+      companiesMissingReview: missing.length,
+      created,
+    });
+  } catch (error) {
+    logger.error("backfillCompanyReviews failed", error);
+    res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+
+exports.publishAutoReviews = onRequest(async (req, res) => {
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "method_not_allowed" });
+    return;
+  }
+
+  const secret = process.env.SEED_SECRET || "";
+  if (!secret || req.headers["x-seed-secret"] !== secret) {
+    res.status(403).json({ ok: false, error: "forbidden" });
+    return;
+  }
+
+  try {
+    const ts = admin.firestore.FieldValue.serverTimestamp();
+
+    // We only want the placeholder drafts created by our backfill:
+    // - sortOrder: 9999
+    // - published: false
+    // - doc id ends with "-auto" (checked client-side)
+    const snap = await db
+      .collection("reviews")
+      .where("published", "==", false)
+      .where("sortOrder", "==", 9999)
+      .get();
+
+    const toPublish = [];
+    snap.forEach((doc) => {
+      if (String(doc.id || "").endsWith("-auto")) toPublish.push(doc.ref);
+    });
+
+    const updated = [];
+    for (let i = 0; i < toPublish.length; i += 450) {
+      const batch = db.batch();
+      const chunk = toPublish.slice(i, i + 450);
+      for (const ref of chunk) {
+        batch.set(ref, { published: true, updatedAt: ts }, { merge: true });
+        updated.push(ref.id);
+      }
+      await batch.commit();
+    }
+
+    res.status(200).json({
+      ok: true,
+      matchedDraftPlaceholders: toPublish.length,
+      published: updated.length,
+      updated,
+    });
+  } catch (error) {
+    logger.error("publishAutoReviews failed", error);
     res.status(500).json({ ok: false, error: "server_error" });
   }
 });

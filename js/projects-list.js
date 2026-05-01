@@ -8,8 +8,6 @@
       .replace(/"/g, "&quot;");
   }
 
-  function pad2(n) { return n < 10 ? "0" + n : String(n); }
-
   function tagsMarkup(tags) {
     if (!tags || !tags.length) return "";
     var arr = (tags || []).slice(0, 4);
@@ -20,22 +18,14 @@
     );
   }
 
-  function shortLabel(s) {
-    var t = String(s || "").trim();
-    if (!t) return "";
-    if (t.length > 22) return t.slice(0, 21).trim() + "…";
-    return t;
-  }
-
-  function cardMarkup(p, idx) {
+  function cardMarkup(p) {
     var href = "/projects/" + esc(p.slug);
     var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
     var title = esc(p.title || "Project");
     var summary = esc(p.summary || p.tagline || "");
-    var num = pad2((idx || 0) + 1) + " / " + esc(shortLabel(p.title || ""));
     return (
       '<a class="project-card" href="' + href + '" data-reveal>' +
-      '<div class="project-card-img" data-num="' + num + '">' +
+      '<div class="project-card-img">' +
       '<img loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" />' +
       "</div>" +
       '<div class="project-card-body">' +
@@ -73,11 +63,10 @@
           return;
         }
         container.innerHTML = "";
-        var idx = 0;
         snap.forEach(function (doc) {
           var data = doc.data();
           data.id = doc.id;
-          container.insertAdjacentHTML("beforeend", cardMarkup(data, idx++));
+          container.insertAdjacentHTML("beforeend", cardMarkup(data));
         });
         if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
           SiteUI.rebindAfterDynamicMount(container);

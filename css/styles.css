@@ -585,22 +585,7 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 
 .project-card:hover .project-card-img img { transform: scale(1.04); }
 
-.project-card-img::before {
-  content: attr(data-num);
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--paper);
-  background: rgba(11,11,13,0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 6px 10px;
-  border-radius: var(--r-sm);
-  z-index: 1;
-}
+/* Project “number / title” overlay removed. */
 
 .project-card-body {
   padding-right: 24px;
@@ -955,7 +940,10 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 80px;
-  align-items: start;
+  align-items: center;
+  /* Full-section presence (match other homepage blocks). */
+  min-height: 100vh;
+  min-height: 100svh;
 }
 
 .contact-form {
@@ -966,6 +954,8 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* Don’t stretch the card to the section height. */
+  align-self: center;
 }
 
 .field { display: flex; flex-direction: column; gap: 8px; }
@@ -1173,7 +1163,7 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   .svc-head { grid-template-columns: 60px 1fr auto; gap: 16px; }
   .svc-body-inner { grid-template-columns: 60px 1fr; gap: 16px; }
   .svc-image { grid-column: 2 / 3; margin-top: 24px; }
-  .contact-grid { grid-template-columns: 1fr; gap: 40px; }
+  .contact-grid { grid-template-columns: 1fr; gap: 40px; align-items: start; }
   .footer-main { grid-template-columns: 1fr 1fr; }
   .blog-grid { grid-template-columns: 1fr 1fr; }
   .nav { display: none; }

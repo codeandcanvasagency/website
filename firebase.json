@@ -46,6 +46,14 @@
         "function": "seedProjects"
       },
       {
+        "source": "/api/backfill-company-reviews",
+        "function": "backfillCompanyReviews"
+      },
+      {
+        "source": "/api/publish-auto-reviews",
+        "function": "publishAutoReviews"
+      },
+      {
         "source": "/api/bootstrap-admin",
         "function": "bootstrapAdmin"
       },
