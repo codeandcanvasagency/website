@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20260501a" />
-<link rel="stylesheet" href="/css/pages.css?v=20260428j" />
+<link rel="stylesheet" href="/css/styles.css?v=20260501m" />
+<link rel="stylesheet" href="/css/pages.css?v=20260501h" />
 <link rel="stylesheet" href="/css/contact-form.css?v=20260428j" />
 </head>
 <body data-screen-label="Contact">
@@ -29,32 +29,24 @@
   <div class="container">
     <div class="hero-grid">
       <div data-reveal>
-        <div class="eyebrow">— Contact</div>
+        <div class="eyebrow">Contact</div>
         <h1>Let's <span class="italic">chat.</span></h1>
         <p class="lead">Ready to bring your vision to life? Whether you have a project in mind or just need expert advice, we're here to help you create something extraordinary.</p>
 
-        <div class="contact-meta-list">
-          <div class="cm-row">
-            <span class="cm-label">Email</span>
-            <a href="mailto:contact@codeandcanvas.agency" class="cm-value">contact@codeandcanvas.agency</a>
+        <div class="contact-meta contact-meta--stack">
+          <div>
+            <div class="key">Email us</div>
+            <div class="val"><a href="mailto:contact@codeandcanvas.agency">contact@codeandcanvas.agency</a></div>
           </div>
-          <div class="cm-row">
-            <span class="cm-label">Phone</span>
-            <a href="tel:+447535101010" class="cm-value">+44 (0)7535 101010</a>
-          </div>
-          <div class="cm-row">
-            <span class="cm-label">Hours</span>
-            <span class="cm-value">Mon – Fri · 09:00 – 18:00 GMT</span>
-          </div>
-          <div class="cm-row">
-            <span class="cm-label">Response</span>
-            <span class="cm-value">Within 48 hours</span>
+          <div>
+            <div class="key">Call us</div>
+            <div class="val"><a href="tel:+447535101010">+44 (0)7535 101010</a></div>
           </div>
         </div>
       </div>
 
       <div data-reveal>
-        <div data-contact-form-mount class="cnc-contact-form-mount contact-card"></div>
+        <div data-contact-form-mount class="cnc-contact-form-mount contact-form"></div>
       </div>
     </div>
   </div>
@@ -64,18 +56,14 @@
 <section class="offices-section">
   <div class="container">
     <div class="section-head">
-      <span class="label">— Office</span>
-      <h2>Where to <span class="italic">find us.</span></h2>
+      <div class="eyebrow">Office</div>
+      <h2 class="display-2">Where to <span class="italic">find us.</span></h2>
     </div>
 
     <div class="offices-grid">
       <article class="office-card" data-reveal>
-        <div class="office-image">
-          <img src="/images/pexels-djordje-petrovic-590080-2102416.jpg" alt="Slough studio" loading="lazy" decoding="async" />
-          <span class="office-badge">HQ</span>
-        </div>
         <div class="office-body">
-          <span class="office-num">— 01 / United Kingdom</span>
+          <span class="office-num">HQ</span>
           <h3>Slough <span class="italic">studio.</span></h3>
           <p>Our UK base — where most of our brand &amp; product work begins. Drop by for a coffee or book a working session.</p>
           <ul class="office-meta">
@@ -83,19 +71,37 @@
               <span class="cm-label">Address</span>
               <span class="cm-value">268 Bath Road, Slough, SL1 4DX</span>
             </li>
+          </ul>
+        </div>
+        <div class="office-map" aria-label="Map to Slough studio">
+          <iframe
+            title="Code & Canvas — Slough studio map"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q=268%20Bath%20Road%2C%20Slough%2C%20SL1%204DX&output=embed"
+          ></iframe>
+        </div>
+      </article>
+
+      <article class="office-card" data-reveal>
+        <div class="office-body">
+          <span class="office-num">Dubai</span>
+          <h3>Dubai <span class="italic">office.</span></h3>
+          <p>Our UAE base — for in-person workshops, discovery sessions, and local project delivery.</p>
+          <ul class="office-meta">
             <li>
-              <span class="cm-label">Email</span>
-              <a class="cm-value" href="mailto:contact@codeandcanvas.agency">contact@codeandcanvas.agency</a>
-            </li>
-            <li>
-              <span class="cm-label">Phone</span>
-              <a class="cm-value" href="tel:+447535101010">+44 (0)7535 101010</a>
-            </li>
-            <li>
-              <span class="cm-label">Hours</span>
-              <span class="cm-value">Mon – Fri · 09:00 – 18:00 GMT</span>
+              <span class="cm-label">Address</span>
+              <span class="cm-value">303 Albasha 3, Silicon Oasis, Nad Hessa, Dubai</span>
             </li>
           </ul>
+        </div>
+        <div class="office-map" aria-label="Map to Dubai office">
+          <iframe
+            title="Code & Canvas — Dubai office map"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q=Albasha%203%20Residence%2C%20Silicon%20Oasis%2C%20Dubai&output=embed"
+          ></iframe>
         </div>
       </article>
     </div>
@@ -137,7 +143,7 @@
         <span class="follow-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 3H20.5l-6.5 7.43L21.5 21h-5.95l-4.66-6.1L5.5 21H2.5l6.95-7.95L2 3h6.1l4.21 5.56L17.53 3zm-1.04 16.2h1.65L7.62 4.71H5.85L16.49 19.2z"/></svg>
         </span>
-        <span class="follow-name">X · Twitter</span>
+        <span class="follow-name">X</span>
         <span class="follow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17L17 7M9 7h8v8"/></svg></span>
       </a>
 

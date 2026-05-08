@@ -38,6 +38,9 @@
   --container: 1280px;
   --gutter: 24px;
   --section-y: 120px;
+  /* First-section top rhythm (matches `.hero` on the home page). */
+  --hero-padding-top: 80px;
+  --hero-padding-top-mobile: 40px;
 
   /* Radii */
   --r-sm: 4px;
@@ -366,7 +369,7 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 
 .hero {
   position: relative;
-  padding-top: 80px;
+  padding-top: var(--hero-padding-top, 80px);
   padding-bottom: 0;
   overflow: hidden;
 }
@@ -549,12 +552,74 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 .section-head .head-left { max-width: 720px; }
 .section-head .eyebrow { margin-bottom: 20px; }
 
+/* Contact page: stack eyebrow + heading for Offices header. */
+body[data-screen-label="Contact"] .offices-section .section-head {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 16px;
+}
+
 /* ---------- Projects (cards) ----------------------------------------- */
 
 .projects {
   display: grid;
   grid-template-columns: 1fr;
   gap: 80px;
+}
+
+/* Home featured projects: 2-col visual tile grid */
+.projects.projects--tiles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px;
+}
+
+.project-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.project-tile-img {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--ink-700);
+}
+
+.project-tile-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 800ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.project-tile:hover .project-tile-img img { transform: scale(1.04); }
+
+.project-tile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-tile-body h3 {
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+  margin: 0;
+}
+
+.project-tile-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
 }
 
 .project-card {
@@ -763,8 +828,15 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   margin-right: auto;
 }
 
+.cta-inline.cta-inline--flush {
+  margin-top: 0;
+}
+
 .cta-inline h2 { margin-bottom: 24px; }
 .cta-inline p { margin-bottom: 36px; color: var(--paper-dim); }
+
+/* Home-only CTA section: rely on previous section spacing. */
+.section.section--cta-tight { padding-top: 0; }
 
 /* ---------- Latest projects carousel --------------------------------- */
 
@@ -934,16 +1006,20 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 
 /* ---------- Contact --------------------------------------------------- */
 
-.contact-section { background: var(--ink-900); position: relative; }
+.contact-section {
+  background: var(--ink-900);
+  position: relative;
+  /* Add extra breathing room before the next section (Blog) on home. */
+  padding-bottom: calc(var(--section-y) * 1.5);
+}
 
 .contact-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 80px;
   align-items: center;
-  /* Full-section presence (match other homepage blocks). */
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: 80vh;
+  min-height: 80svh;
 }
 
 .contact-form {
@@ -997,6 +1073,11 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   margin-top: 32px;
   padding-top: 32px;
   border-top: 1px solid var(--line-100);
+}
+
+.contact-meta.contact-meta--stack {
+  grid-template-columns: 1fr;
+  gap: 20px;
 }
 
 .contact-meta .key {
@@ -1060,7 +1141,7 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 
 /* ---------- Footer --------------------------------------------------- */
 
-.footer { background: var(--ink-900); border-top: 1px solid var(--line-100); padding-top: 96px; }
+.footer { background: var(--ink-900); border-top: 1px solid var(--line-100); padding-top: 64px; }
 
 .footer-cta {
   display: grid;
@@ -1085,7 +1166,7 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   display: grid;
   grid-template-columns: 1.3fr 1fr 1.3fr;
   gap: 64px;
-  padding: 64px 0;
+  padding: 48px 0;
 }
 
 .footer-brand .brand { font-size: 32px; margin-bottom: 16px; }
@@ -1107,11 +1188,14 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 .footer-col a:hover { color: var(--paper); }
 
 .footer-bottom {
+  border-top: 1px solid var(--line-100);
+}
+
+.footer-bottom .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 32px 0;
-  border-top: 1px solid var(--line-100);
 }
 
 .footer-bottom p { margin: 0; font-size: 13px; color: var(--paper-mute); }
@@ -1201,7 +1285,15 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
   .display-2 { font-size: clamp(34px, 9vw, 44px); }
   .display-3 { font-size: clamp(26px, 7.5vw, 34px); }
 
-  .hero { padding-top: 40px; }
+  .hero { padding-top: var(--hero-padding-top-mobile, 40px); }
+
+  /* Inner-page heroes (defined in pages.css) share the same top inset. */
+  .page-hero,
+  .service-hero,
+  .detail-hero,
+  .article-hero {
+    padding-top: var(--hero-padding-top-mobile, 40px);
+  }
   .hero-copy .lead { font-size: 16px; }
   /* Don't let the hero photo dominate the viewport on phones. */
   .hero-image-frame { aspect-ratio: 4/3; }
@@ -1213,6 +1305,7 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 
   /* Projects */
   .projects { gap: 56px; }
+  .projects.projects--tiles { grid-template-columns: 1fr; gap: 28px; }
   .project-card h3 { font-size: clamp(24px, 7vw, 32px); }
   .project-card .summary { font-size: 15px; }
 
@@ -1771,23 +1864,10 @@ img, svg, video { max-width: 100%; }
 .footer-brand-contact a { color: var(--paper-dim); text-decoration: none; }
 .footer-brand-contact a:hover { color: var(--paper); }
 
-/* --- Footer CTA block (cta-inline pattern) --- */
-.cta-inline.footer-cta-inline {
-  margin-top: 0;
-  padding: 96px 0 80px;
-  border-bottom: 1px solid var(--line-100);
-  max-width: 720px;
-}
-
-.cta-inline.footer-cta-inline .eyebrow { margin-bottom: 24px; }
-.cta-inline.footer-cta-inline p { color: var(--paper-dim); }
-.cta-inline.footer-cta-inline .btn { margin-top: 4px; }
-
 /* Make sure the eyebrow underline still renders on the centered cta-inline */
 .cta-inline .eyebrow { display: inline-flex; }
 
 @media (max-width: 640px) {
-  .cta-inline.footer-cta-inline { padding: 64px 0 56px; }
   .footer-brand-contact { font-size: 13px; }
 }
 

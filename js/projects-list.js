@@ -18,6 +18,23 @@
     );
   }
 
+  function tileMarkup(p) {
+    var href = "/projects/" + esc(p.slug);
+    var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
+    var title = esc(p.title || "Project");
+    return (
+      '<a class="project-tile" href="' + href + '" data-reveal>' +
+      '<div class="project-tile-img">' +
+      '<img loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" />' +
+      "</div>" +
+      '<div class="project-tile-body">' +
+      "<h3>" + title + "</h3>" +
+      '<span class="project-tile-cta">View case study <span class="arrow"></span></span>' +
+      "</div>" +
+      "</a>"
+    );
+  }
+
   function cardMarkup(p) {
     var href = "/projects/" + esc(p.slug);
     var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
@@ -42,6 +59,7 @@
     options = options || {};
     var limit = options.limit || 50;
     var featured = options.featured;
+    var layout = options.layout || "cards";
     var orderByField = options.orderBy || "sortOrder";
     var orderDir = options.orderDir || (orderByField === "date" ? "desc" : "asc");
     if (!container || !window.firebase || !firebase.apps.length) {
@@ -51,11 +69,20 @@
       return Promise.resolve();
     }
     var db = firebase.firestore();
-    var q = db.collection("projects").where("published", "==", true);
-    if (featured === true) q = q.where("featured", "==", true);
-    if (featured === false) q = q.where("featured", "==", false);
-    q = q.orderBy(orderByField, orderDir).limit(limit);
-    return q.get()
+    var base = db.collection("projects").where("published", "==", true);
+    if (featured === true) base = base.where("featured", "==", true);
+    if (featured === false) base = base.where("featured", "==", false);
+
+    function run(orderField, dir) {
+      return base.orderBy(orderField, dir).limit(limit).get();
+    }
+
+    function isIndexError(err) {
+      var msg = (err && (err.message || err.toString && err.toString())) || "";
+      return /requires an index/i.test(msg) || /failed precondition/i.test(msg);
+    }
+
+    return run(orderByField, orderDir)
       .then(function (snap) {
         if (snap.empty) {
           container.innerHTML =
@@ -66,13 +93,39 @@
         snap.forEach(function (doc) {
           var data = doc.data();
           data.id = doc.id;
-          container.insertAdjacentHTML("beforeend", cardMarkup(data));
+          container.insertAdjacentHTML("beforeend", layout === "tiles" ? tileMarkup(data) : cardMarkup(data));
         });
         if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
           SiteUI.rebindAfterDynamicMount(container);
         }
       })
       .catch(function (err) {
+        // If the chosen orderBy requires an index (common), fall back to a stable field.
+        if (isIndexError(err) && orderByField !== "sortOrder") {
+          return run("sortOrder", "asc")
+            .then(function (snap) {
+              if (snap.empty) {
+                container.innerHTML =
+                  '<p class="text-mute">No published projects yet.</p>';
+                return;
+              }
+              container.innerHTML = "";
+              snap.forEach(function (doc) {
+                var data = doc.data();
+                data.id = doc.id;
+                container.insertAdjacentHTML("beforeend", layout === "tiles" ? tileMarkup(data) : cardMarkup(data));
+              });
+              if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
+                SiteUI.rebindAfterDynamicMount(container);
+              }
+            })
+            .catch(function (err2) {
+              console.error(err2);
+              container.innerHTML =
+                '<p class="text-mute">Could not load projects.</p>';
+            });
+        }
+
         console.error(err);
         container.innerHTML =
           '<p class="text-mute">Could not load projects.</p>';

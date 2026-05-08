@@ -8,7 +8,10 @@
 /* ---------- Page hero (compact, top-of-page) ------------------------ */
 
 .page-hero {
-  padding: 220px 0 120px;
+  padding-top: var(--hero-padding-top, 80px);
+  padding-bottom: 120px;
+  padding-left: 0;
+  padding-right: 0;
   position: relative;
   border-bottom: 1px solid var(--line-100);
 }
@@ -45,7 +48,7 @@
 .page-hero-meta .pair-value { color: var(--paper); }
 
 @media (max-width: 900px) {
-  .page-hero { padding: 150px 0 80px; }
+  .page-hero { padding-bottom: 80px; }
   .page-hero-meta { flex-wrap: wrap; gap: 32px; }
 }
 
@@ -71,7 +74,10 @@
 /* ---------- Project detail hero ------------------------------------- */
 
 .detail-hero {
-  padding: 160px 0 0;
+  padding-top: var(--hero-padding-top, 80px);
+  padding-bottom: 0;
+  padding-left: 0;
+  padding-right: 0;
   border-bottom: 0;
 }
 
@@ -115,7 +121,7 @@
 }
 
 @media (max-width: 900px) {
-  .detail-hero { padding: 120px 0 0; }
+  .detail-hero { padding-top: var(--hero-padding-top, 80px); }
   .back-link { margin-bottom: 48px; }
   .detail-cover { margin-top: 56px; }
 }
@@ -326,7 +332,10 @@
    ============================================================ */
 
 .service-hero {
-  padding: 200px 0 120px;
+  padding-top: var(--hero-padding-top, 80px);
+  padding-bottom: 120px;
+  padding-left: 0;
+  padding-right: 0;
   border-bottom: 1px solid var(--line-100);
 }
 
@@ -400,7 +409,7 @@
 }
 
 @media (max-width: 900px) {
-  .service-hero { padding: 150px 0 80px; }
+  .service-hero { padding-bottom: 80px; }
   .service-hero .hero-grid { grid-template-columns: 1fr; gap: 56px; }
   .service-hero .lead { margin-bottom: 32px; }
   .service-hero .hero-image { aspect-ratio: 4 / 3; }
@@ -982,6 +991,20 @@
   transform: translate(4px, -4px);
 }
 
+/* About + Contact pages: simplify social tiles (no numbers/arrows). */
+body[data-screen-label="About"] .follow-num,
+body[data-screen-label="About"] .follow-arrow,
+body[data-screen-label="Contact"] .follow-num,
+body[data-screen-label="Contact"] .follow-arrow {
+  display: none;
+}
+
+body[data-screen-label="About"] .follow-card,
+body[data-screen-label="Contact"] .follow-card {
+  gap: 18px;
+  min-height: 220px;
+}
+
 @media (max-width: 1024px) {
   .follow-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -996,11 +1019,18 @@
    CONTACT PAGE
    ============================================================ */
 
+/* Tighten bottom spacing so the form doesn’t sit over a large empty block. */
+body[data-screen-label="Contact"] .page-hero.contact-hero {
+  padding-bottom: 80px;
+}
+
 .contact-hero .hero-grid {
   display: grid;
   grid-template-columns: 1fr 1.1fr;
   gap: 80px;
   align-items: start;
+  /* Don’t inherit home hero min-height (720px) — it leaves a huge gap under the form. */
+  min-height: unset;
 }
 
 .contact-meta-list {
@@ -1345,9 +1375,29 @@ a.cm-value:hover { color: var(--accent); }
   align-items: baseline;
 }
 
+/* Contact page: Slough office uses a 2-col card with map */
+body[data-screen-label="Contact"] .offices-grid { grid-template-columns: 1fr; }
+body[data-screen-label="Contact"] .office-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+body[data-screen-label="Contact"] .office-map {
+  min-height: 100%;
+  border-left: 1px solid var(--line-100);
+}
+body[data-screen-label="Contact"] .office-map iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  border: 0;
+  display: block;
+}
+
 @media (max-width: 900px) {
   .offices-grid { grid-template-columns: 1fr; }
   .office-body { padding: 32px 28px; }
+  body[data-screen-label="Contact"] .office-card { grid-template-columns: 1fr; }
+  body[data-screen-label="Contact"] .office-map { border-left: 0; border-top: 1px solid var(--line-100); }
 }
 
 /* ---------- Service CTA reuse for about page ----------------------- */
@@ -1850,7 +1900,10 @@ a.cm-value:hover { color: var(--accent); }
 }
 
 .article-hero {
-  padding: 200px 0 64px;
+  padding-top: var(--hero-padding-top, 80px);
+  padding-bottom: 64px;
+  padding-left: 0;
+  padding-right: 0;
   border-bottom: 0;
 }
 
@@ -1926,7 +1979,7 @@ a.cm-value:hover { color: var(--accent); }
 }
 
 @media (max-width: 900px) {
-  .article-hero { padding: 140px 0 48px; }
+  .article-hero { padding-bottom: 48px; }
   .byline-meta { gap: 24px; flex-wrap: wrap; }
 }
 

@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20260501a" />
-<link rel="stylesheet" href="/css/pages.css?v=20260428j" />
+<link rel="stylesheet" href="/css/styles.css?v=20260501h" />
+<link rel="stylesheet" href="/css/pages.css?v=20260501e" />
 <link rel="stylesheet" href="/css/contact-form.css?v=20260428j" />
 </head>
 <body data-screen-label="Projects">
@@ -27,35 +27,16 @@
 <!-- PAGE HERO -->
 <section class="page-hero">
   <div class="container">
-    <div class="eyebrow">— Portfolio</div>
+    <div class="eyebrow">Portfolio</div>
     <h1>Latest <span class="italic">projects.</span></h1>
     <p class="lead">A selection of recent engagements spanning fintech, e-commerce, transport, NFT and beyond — every one of them shipped, measured, and still in production.</p>
-    <div class="page-hero-meta">
-      <div class="pair">
-        <span>Sectors</span>
-        <span class="pair-value">Fintech / E-com / Web3</span>
-      </div>
-      <div class="pair">
-        <span>Active in</span>
-        <span class="pair-value">London &amp; Dubai</span>
-      </div>
-      <div class="pair">
-        <span>Output</span>
-        <span class="pair-value">Brand · Product · Engineering</span>
-      </div>
-    </div>
   </div>
 </section>
 
 <!-- PROJECTS GRID -->
 <section class="section projects-index">
   <div class="container">
-    <div class="index-head">
-      <span class="label">— Index / case studies</span>
-      <span class="label">Newest first</span>
-    </div>
-
-    <div id="cc-projects-list" class="projects" style="margin-top: 64px"></div>
+    <div id="cc-projects-list" class="projects projects--tiles"></div>
   </div>
 </section>
 
@@ -66,11 +47,11 @@
 <script src="/js/firebase-config.js?v=20260428j"></script>
 <script src="/js/firebase-app.js?v=20260428j"></script>
 <script src="/js/site-ui.js?v=20260428j"></script>
-<script src="/js/projects-list.js?v=20260501a"></script>
+<script src="/js/projects-list.js?v=20260501b"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   var el = document.getElementById("cc-projects-list");
-  if (el) window.ccProjects.renderList(el, { limit: 50 });
+  if (el) window.ccProjects.renderList(el, { limit: 50, layout: "tiles", orderBy: "date", orderDir: "desc" });
 });
 </script>
 </body>
