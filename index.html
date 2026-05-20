@@ -21,7 +21,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20260501i" />
+<link rel="stylesheet" href="/css/styles.css?v=20260512e" />
 <link rel="stylesheet" href="/css/pages.css?v=20260501e" />
 <link rel="stylesheet" href="/css/contact-form.css?v=20260428j" />
 </head>
@@ -69,23 +69,7 @@
       <div class="eyebrow">Trusted partner services</div>
     </div>
     <div class="logo-marquee">
-      <div class="logo-track">
-        <img src="/images/gclogo.png" alt="Google Cloud" loading="lazy" decoding="async" />
-        <img src="/images/aws.png" alt="AWS" loading="lazy" decoding="async" />
-        <img src="/images/azure.png" alt="Azure" loading="lazy" decoding="async" />
-        <img src="/images/shopify.png" alt="Shopify" loading="lazy" decoding="async" />
-        <img src="/images/square.png" alt="Square" loading="lazy" decoding="async" />
-        <img src="/images/stripe.png" alt="Stripe" loading="lazy" decoding="async" />
-        <img src="/images/webflowp.png" alt="Webflow" loading="lazy" decoding="async" />
-        <img src="/images/wordpress.png" alt="WordPress" loading="lazy" decoding="async" />
-        <img src="/images/hubspot.png" alt="HubSpot" loading="lazy" decoding="async" />
-        <img src="/images/intercom.png" alt="Intercom" loading="lazy" decoding="async" />
-        <img src="/images/gclogo.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <img src="/images/aws.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <img src="/images/azure.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <img src="/images/shopify.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-        <img src="/images/stripe.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-      </div>
+      <div class="logo-track" id="cc-partners-track"></div>
     </div>
   </div>
 </section>
@@ -102,6 +86,7 @@
     </div>
 
     <div id="cc-home-projects" class="projects projects--tiles"></div>
+    <div class="home-projects-more-wrap" id="cc-home-projects-more" aria-live="polite"></div>
   </div>
 </section>
 
@@ -231,17 +216,99 @@
 <script src="/js/firebase-config.js?v=20260428j"></script>
 <script src="/js/firebase-app.js?v=20260428j"></script>
 <script src="/js/site-ui.js?v=20260428j"></script>
-<script src="/js/projects-list.js?v=20260501b"></script>
+<script src="/js/projects-list.js?v=20260502a"></script>
 <script src="/js/reviews.js?v=20260428j"></script>
 <script src="/js/blog-posts.js?v=20260428j"></script>
 <script src="/js/contact-form.js?v=20260428j"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  var featured = document.getElementById("cc-home-projects");
-  if (featured) window.ccProjects.renderList(featured, { featured: true, orderBy: "date", orderDir: "desc", limit: 8, layout: "tiles" });
+  var partnersTrack = document.getElementById("cc-partners-track");
+  if (partnersTrack) {
+    /* Partner PNGs: use colored or dark artwork on transparent. The bar applies the same
+       brightness(0) invert(1) filter to every img. Pure white-on-transparent files should be
+       channel-inverted once (see repo history / scripts) so they match the filter pipeline. */
+    var partnerLogos = [
+      { src: "/images/gclogo.png", alt: "Google Cloud" },
+      { src: "/images/aws.png", alt: "AWS" },
+      { src: "/images/azure.png", alt: "Azure" },
+      { src: "/images/shopify.png", alt: "Shopify" },
+      { src: "/images/square.png", alt: "Square" },
+      { src: "/images/stripe.png", alt: "Stripe" },
+      { src: "/images/webflowp.png", alt: "Webflow" },
+      { src: "/images/wordpress.png?v=20260512f", alt: "WordPress" },
+      { src: "/images/hubspot.png", alt: "HubSpot" },
+      { src: "/images/intercom.png", alt: "Intercom" },
+      { src: "/images/claude-ai.png?v=20260512f", alt: "Claude" },
+      { src: "/images/cursor.png?v=20260512f", alt: "Cursor" },
+    ];
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+      }
+      return a;
+    }
+    function appendLogo(item, duplicate) {
+      var img = document.createElement("img");
+      img.src = item.src;
+      img.alt = duplicate ? "" : item.alt;
+      if (duplicate) img.setAttribute("aria-hidden", "true");
+      /* translateX(-50%) loop needs both halves sized from first paint; lazy imgs
+         off-screen stay 0×0 and the seam jumps when they load. */
+      img.loading = "eager";
+      img.decoding = "async";
+      partnersTrack.appendChild(img);
+    }
+    var order = shuffle(partnerLogos);
+    order.forEach(function (item) {
+      appendLogo(item, false);
+    });
+    order.forEach(function (item) {
+      appendLogo(item, true);
+    });
+  }
 
+  var featuredGrid = document.getElementById("cc-home-projects");
+  var featuredMore = document.getElementById("cc-home-projects-more");
   var latestSection = document.getElementById("cc-latest-projects");
-  if (latestSection) window.ccProjects.renderSlider(latestSection, { featured: false, orderBy: "date", orderDir: "desc", limit: 12 });
+
+  if (featuredGrid && featuredMore && window.ccProjects.renderHomeFeatured) {
+    window.ccProjects
+      .renderHomeFeatured(featuredGrid, featuredMore, {
+        initialCount: 8,
+        step: 4,
+        reserveExclude: 8,
+      })
+      .then(function (excludeIds) {
+        if (latestSection) {
+          window.ccProjects.renderSlider(latestSection, {
+            excludeIds: excludeIds,
+            orderBy: "date",
+            orderDir: "desc",
+            limit: 12,
+          });
+        }
+      });
+  } else if (featuredGrid && window.ccProjects.renderList) {
+    window.ccProjects.renderList(featuredGrid, {
+      featured: true,
+      orderBy: "date",
+      orderDir: "desc",
+      limit: 8,
+      layout: "tiles",
+    });
+    if (latestSection) {
+      window.ccProjects.renderSlider(latestSection, {
+        featured: false,
+        orderBy: "date",
+        orderDir: "desc",
+        limit: 12,
+      });
+    }
+  }
 
   var reviewsSection = document.getElementById("cc-testimonials");
   if (reviewsSection) window.ccReviews.renderReviews(reviewsSection);

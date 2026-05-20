@@ -1,4 +1,5 @@
 node_modules
+.venv-img/
 .firebase/
 functions/.env
 .env

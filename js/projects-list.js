@@ -1,4 +1,96 @@
 (function () {
+  /** Timestamp, ISO string, or number → comparable millis */
+  function projectDateMillis(p) {
+    var d = p && p.date;
+    if (!d && d !== 0) return 0;
+    if (typeof d.toMillis === "function") return d.toMillis();
+    if (typeof d === "number") return d;
+    if (typeof d === "string") {
+      var t = Date.parse(d);
+      return isNaN(t) ? 0 : t;
+    }
+    return 0;
+  }
+
+  function sortProjectsByDateDesc(arr) {
+    return arr.slice().sort(function (a, b) {
+      return projectDateMillis(b) - projectDateMillis(a);
+    });
+  }
+
+  function docsFromSnap(snap) {
+    var out = [];
+    snap.forEach(function (doc) {
+      var data = doc.data();
+      data.id = doc.id;
+      out.push(data);
+    });
+    return out;
+  }
+
+  function isIndexError(err) {
+    var msg = (err && (err.message || (err.toString && err.toString()))) || "";
+    return /requires an index/i.test(msg) || /failed precondition/i.test(msg);
+  }
+
+  /**
+   * Featured first (each block sorted by date desc), then non-featured by date desc.
+   */
+  function mergeFeaturedThenLatest(featuredRows, nonFeaturedRows) {
+    return sortProjectsByDateDesc(featuredRows).concat(sortProjectsByDateDesc(nonFeaturedRows));
+  }
+
+  /**
+   * Fallback: single published query then partition + sort.
+   */
+  function mergeFromAllPublished(rows) {
+    var feat = [];
+    var rest = [];
+    rows.forEach(function (p) {
+      if (p.featured === true) feat.push(p);
+      else rest.push(p);
+    });
+    return mergeFeaturedThenLatest(feat, rest);
+  }
+
+  function fetchCombinedHomeList(db) {
+    var col = db.collection("projects");
+    var qFeat = col
+      .where("published", "==", true)
+      .where("featured", "==", true)
+      .orderBy("date", "desc")
+      .limit(80);
+    var qRecent = col
+      .where("published", "==", true)
+      .orderBy("date", "desc")
+      .limit(150);
+    return Promise.all([qFeat.get(), qRecent.get()])
+      .then(function (pair) {
+        var featured = docsFromSnap(pair[0]);
+        var recent = docsFromSnap(pair[1]);
+        var seen = {};
+        featured.forEach(function (p) {
+          seen[p.id] = true;
+        });
+        var rest = [];
+        recent.forEach(function (p) {
+          if (!seen[p.id]) rest.push(p);
+        });
+        return mergeFeaturedThenLatest(featured, rest);
+      })
+      .catch(function (err) {
+        if (!isIndexError(err)) throw err;
+        return col
+          .where("published", "==", true)
+          .orderBy("sortOrder", "asc")
+          .limit(200)
+          .get()
+          .then(function (snap) {
+            return mergeFromAllPublished(docsFromSnap(snap));
+          });
+      });
+  }
+
   function esc(s) {
     if (s === undefined || s === null) return "";
     return String(s)
@@ -77,11 +169,6 @@
       return base.orderBy(orderField, dir).limit(limit).get();
     }
 
-    function isIndexError(err) {
-      var msg = (err && (err.message || err.toString && err.toString())) || "";
-      return /requires an index/i.test(msg) || /failed precondition/i.test(msg);
-    }
-
     return run(orderByField, orderDir)
       .then(function (snap) {
         if (snap.empty) {
@@ -132,6 +219,99 @@
       });
   }
 
+  /**
+   * Home featured grid: featured projects first (by date), then latest non-featured.
+   * Initial visible count `initialCount`, then +`step` per "Show more".
+   * Resolves to doc ids for the first `reserveExclude` rows (carousel excludes these).
+   */
+  function renderHomeFeatured(gridEl, buttonMountEl, options) {
+    options = options || {};
+    var initial = options.initialCount || 8;
+    var step = options.step || 4;
+    var reserveExclude = options.reserveExclude || 8;
+
+    if (!gridEl || !window.firebase || !firebase.apps.length) {
+      if (gridEl)
+        gridEl.innerHTML =
+          '<p class="text-mute">Projects are loading…</p>';
+      return Promise.resolve([]);
+    }
+    if (!buttonMountEl) {
+      return Promise.resolve([]);
+    }
+
+    var db = firebase.firestore();
+    gridEl.innerHTML = '<p class="text-mute">Projects are loading…</p>';
+    buttonMountEl.innerHTML = "";
+
+    return fetchCombinedHomeList(db)
+      .then(function (combined) {
+        if (!combined.length) {
+          gridEl.innerHTML =
+            '<p class="text-mute">No published projects yet.</p>';
+          return [];
+        }
+
+        var shown = Math.min(initial, combined.length);
+
+        function appendTiles(start, end) {
+          for (var i = start; i < end; i++) {
+            gridEl.insertAdjacentHTML(
+              "beforeend",
+              tileMarkup(combined[i]),
+            );
+          }
+        }
+
+        gridEl.innerHTML = "";
+        appendTiles(0, shown);
+
+        if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
+          SiteUI.rebindAfterDynamicMount(gridEl);
+        }
+
+        function syncButton() {
+          if (shown >= combined.length) {
+            buttonMountEl.innerHTML =
+              '<a href="/projects" class="btn btn-primary home-projects-more-btn">' +
+              "Show all projects " +
+              '<span class="arrow"></span></a>';
+          } else {
+            buttonMountEl.innerHTML =
+              '<button type="button" class="btn btn-ghost home-projects-more-btn" id="cc-home-projects-more-btn">' +
+              "Show more</button>";
+            var btn = document.getElementById("cc-home-projects-more-btn");
+            if (btn) {
+              btn.addEventListener("click", function () {
+                var next = Math.min(shown + step, combined.length);
+                appendTiles(shown, next);
+                shown = next;
+                if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
+                  SiteUI.rebindAfterDynamicMount(gridEl);
+                }
+                syncButton();
+              });
+            }
+          }
+        }
+
+        syncButton();
+
+        var excludeIds = [];
+        var n = Math.min(reserveExclude, combined.length);
+        for (var e = 0; e < n; e++) {
+          excludeIds.push(combined[e].id);
+        }
+        return excludeIds;
+      })
+      .catch(function (err) {
+        console.error(err);
+        gridEl.innerHTML =
+          '<p class="text-mute">Could not load projects.</p>';
+        return [];
+      });
+  }
+
   function carouselCardMarkup(p) {
     var href = "/projects/" + esc(p.slug);
     var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
@@ -150,17 +330,81 @@
     options = options || {};
     var limit = options.limit || 50;
     var featured = options.featured;
+    var excludeIds = options.excludeIds || [];
+    var excludeSet = {};
+    excludeIds.forEach(function (id) {
+      if (id) excludeSet[id] = true;
+    });
     var orderByField = options.orderBy || "date";
     var orderDir = options.orderDir || "desc";
-    if (!sliderSection || !window.firebase || !firebase.apps.length) return Promise.resolve();
+    if (!sliderSection || !window.firebase || !firebase.apps.length)
+      return Promise.resolve();
     var db = firebase.firestore();
-    var q = db.collection("projects").where("published", "==", true);
+
+    function fillTrackFromSnap(snap, maxCards) {
+      var track =
+        sliderSection.querySelector("[data-carousel-track]") ||
+        sliderSection.querySelector("#latestTrack") ||
+        sliderSection.querySelector(".carousel-track");
+      if (!track) return 0;
+      track.innerHTML = "";
+      var added = 0;
+      snap.forEach(function (doc) {
+        if (added >= maxCards) return;
+        if (excludeSet[doc.id]) return;
+        var data = doc.data();
+        data.id = doc.id;
+        track.insertAdjacentHTML("beforeend", carouselCardMarkup(data));
+        added++;
+      });
+      return added;
+    }
+
+    function runSliderQuery(q) {
+      return q.get().then(function (snap) {
+        if (snap.empty) {
+          sliderSection.style.display = "none";
+          return;
+        }
+        var added = fillTrackFromSnap(snap, limit);
+        if (!added) {
+          sliderSection.style.display = "none";
+          return;
+        }
+        sliderSection.style.display = "";
+        if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
+          SiteUI.rebindAfterDynamicMount(sliderSection);
+        }
+      });
+    }
+
+    var base = db.collection("projects").where("published", "==", true);
+
+    // Home “Latest”: all published by date, skipping ids shown in the top grid slots.
+    if (excludeIds.length) {
+      var fetchCap = Math.max(limit * 5, 48);
+      var qExc = base.orderBy(orderByField, orderDir).limit(fetchCap);
+      return runSliderQuery(qExc).catch(function (err) {
+        if (!isIndexError(err)) {
+          console.error("slider load error", err);
+          return;
+        }
+        var qFb = base.orderBy("sortOrder", "asc").limit(fetchCap);
+        return runSliderQuery(qFb);
+      });
+    }
+
+    var q = base;
     if (featured === true) q = q.where("featured", "==", true);
     if (featured === false) q = q.where("featured", "==", false);
     q = q.orderBy(orderByField, orderDir).limit(limit);
-    return q.get()
+    return q
+      .get()
       .then(function (snap) {
-        if (snap.empty) { sliderSection.style.display = "none"; return; }
+        if (snap.empty) {
+          sliderSection.style.display = "none";
+          return;
+        }
         var track =
           sliderSection.querySelector("[data-carousel-track]") ||
           sliderSection.querySelector("#latestTrack") ||
@@ -168,15 +412,22 @@
         if (!track) return;
         track.innerHTML = "";
         snap.forEach(function (doc) {
-          var data = doc.data(); data.id = doc.id;
+          var data = doc.data();
+          data.id = doc.id;
           track.insertAdjacentHTML("beforeend", carouselCardMarkup(data));
         });
         if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
           SiteUI.rebindAfterDynamicMount(sliderSection);
         }
       })
-      .catch(function (err) { console.error("slider load error", err); });
+      .catch(function (err) {
+        console.error("slider load error", err);
+      });
   }
 
-  window.ccProjects = { renderList: renderList, renderSlider: renderSlider };
+  window.ccProjects = {
+    renderList: renderList,
+    renderSlider: renderSlider,
+    renderHomeFeatured: renderHomeFeatured,
+  };
 })();

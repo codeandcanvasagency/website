@@ -218,6 +218,116 @@
   //  PROJECTS
   // ═══════════════════════════════════
   var modalDocPublished = false;
+  var projectDnDWired = false;
+
+  function getProjectListIds(containerId) {
+    var el = $(containerId);
+    if (!el) return [];
+    return Array.prototype.map
+      .call(el.querySelectorAll(".project-card[data-project-id]"), function (c) {
+        return c.getAttribute("data-project-id");
+      })
+      .filter(Boolean);
+  }
+
+  function wireProjectDragDropOnce() {
+    if (projectDnDWired) return;
+    projectDnDWired = true;
+    ["projectListFeatured", "projectListNotFeatured"].forEach(function (cid) {
+      var el = $(cid);
+      if (!el) return;
+      el.addEventListener("dragenter", function (e) {
+        e.preventDefault();
+      });
+      el.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        el.classList.add("drag-over");
+      });
+      el.addEventListener("dragleave", function (e) {
+        if (!el.contains(e.relatedTarget)) el.classList.remove("drag-over");
+      });
+      el.addEventListener("drop", onProjectZoneDrop);
+    });
+  }
+
+  async function persistFeaturedBuckets(featIds, plainIds) {
+    var batch = db.batch();
+    var ts = firebase.firestore.FieldValue.serverTimestamp();
+    featIds.forEach(function (id, i) {
+      batch.update(db.collection("projects").doc(id), {
+        featured: true,
+        sortOrder: i,
+        updatedAt: ts,
+      });
+    });
+    plainIds.forEach(function (id) {
+      batch.update(db.collection("projects").doc(id), {
+        featured: false,
+        updatedAt: ts,
+      });
+    });
+    await batch.commit();
+  }
+
+  async function onProjectZoneDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var zoneEl = e.currentTarget;
+    zoneEl.classList.remove("drag-over");
+    var zone =
+      zoneEl.getAttribute("data-drop-zone") ||
+      (zoneEl.id === "projectListFeatured" ? "featured" : "notFeatured");
+    var docId = (e.dataTransfer && e.dataTransfer.getData("text/plain")) || "";
+    docId = String(docId).trim();
+    if (!docId) return;
+
+    var beforeEl = e.target.closest && e.target.closest(".project-card[data-project-id]");
+    var insertBeforeId = null;
+    if (beforeEl && zoneEl.contains(beforeEl)) {
+      insertBeforeId = beforeEl.getAttribute("data-project-id");
+      if (insertBeforeId === docId) {
+        var next = beforeEl.nextElementSibling;
+        insertBeforeId =
+          next && next.classList && next.classList.contains("project-card")
+            ? next.getAttribute("data-project-id")
+            : null;
+      }
+    }
+
+    var metaEl = $("projectListMeta");
+    try {
+      var feat = getProjectListIds("projectListFeatured");
+      var plain = getProjectListIds("projectListNotFeatured");
+      feat = feat.filter(function (id) {
+        return id !== docId;
+      });
+      plain = plain.filter(function (id) {
+        return id !== docId;
+      });
+      if (zone === "featured") {
+        var idx = insertBeforeId ? feat.indexOf(insertBeforeId) : feat.length;
+        if (idx < 0) idx = feat.length;
+        feat.splice(idx, 0, docId);
+      } else {
+        var idx2 = insertBeforeId ? plain.indexOf(insertBeforeId) : plain.length;
+        if (idx2 < 0) idx2 = plain.length;
+        plain.splice(idx2, 0, docId);
+      }
+      await persistFeaturedBuckets(feat, plain);
+      await refreshList();
+      if (metaEl) {
+        var cur = (metaEl.textContent || "").trim();
+        metaEl.textContent = cur ? cur + " \u2014 Featured order saved." : "Featured order saved.";
+      }
+    } catch (err) {
+      console.error(err);
+      if (metaEl) {
+        metaEl.textContent = "Could not save order: " + (err.message || String(err));
+        metaEl.className = "list-meta err";
+      }
+    }
+  }
 
   // ─── JSON view sync state ───
   var EMPTY_PROJECT_TEMPLATE = {
@@ -476,48 +586,153 @@
     setTimeout(function () { $("title").focus(); }, 0);
   }
 
-  function buildProjectCard(row, onEdit) {
-    var doc = row.doc, d = row.d;
+  function buildProjectCard(row, onEdit, opts) {
+    opts = opts || {};
+    var doc = row.doc,
+      d = row.d;
     var card = document.createElement("article");
     card.className = "project-card";
+    card.setAttribute("data-project-id", doc.id);
     var thumb = document.createElement("div");
     thumb.className = "project-card-thumb";
-    if (d.coverImageUrl) { var img = document.createElement("img"); img.src = d.coverImageUrl; img.alt = ""; img.loading = "lazy"; thumb.appendChild(img); }
+    if (d.coverImageUrl) {
+      var img = document.createElement("img");
+      img.src = d.coverImageUrl;
+      img.alt = "";
+      img.loading = "lazy";
+      thumb.appendChild(img);
+    }
     var body = document.createElement("div");
     body.className = "project-card-body";
-    var h3 = document.createElement("h3"); h3.className = "project-card-title"; h3.textContent = d.title || doc.id;
-    var meta = document.createElement("div"); meta.className = "project-card-meta"; meta.textContent = "/" + (d.slug || doc.id) + (d.client ? "  \u00b7  " + d.client : "");
-    var sum = document.createElement("p"); sum.className = "project-card-summary"; sum.textContent = snippet(d.summary, 200);
-    var btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Edit"; btn.onclick = onEdit;
-    body.appendChild(h3); body.appendChild(meta); body.appendChild(sum); body.appendChild(btn);
-    card.appendChild(thumb); card.appendChild(body);
+    var h3 = document.createElement("h3");
+    h3.className = "project-card-title";
+    h3.textContent = d.title || doc.id;
+    var meta = document.createElement("div");
+    meta.className = "project-card-meta";
+    meta.textContent = "/" + (d.slug || doc.id) + (d.client ? "  \u00b7  " + d.client : "");
+    var sum = document.createElement("p");
+    sum.className = "project-card-summary";
+    sum.textContent = snippet(d.summary, 200);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Edit";
+    btn.onclick = onEdit;
+    body.appendChild(h3);
+    body.appendChild(meta);
+    body.appendChild(sum);
+    body.appendChild(btn);
+
+    if (opts.draggable) {
+      var drag = document.createElement("div");
+      drag.className = "project-card-drag";
+      drag.setAttribute("draggable", "true");
+      drag.setAttribute("aria-label", "Drag to move or reorder");
+      drag.setAttribute("title", "Drag to featured / not featured or reorder");
+      drag.textContent = "\u2261";
+      drag.addEventListener("mousedown", function (ev) {
+        ev.stopPropagation();
+      });
+      drag.addEventListener("dragstart", function (ev) {
+        if (ev.dataTransfer) {
+          ev.dataTransfer.setData("text/plain", doc.id);
+          ev.dataTransfer.effectAllowed = "move";
+        }
+        card.classList.add("dragging");
+      });
+      drag.addEventListener("dragend", function () {
+        card.classList.remove("dragging");
+        document.querySelectorAll(".drag-list.drag-over").forEach(function (n) {
+          n.classList.remove("drag-over");
+        });
+      });
+      card.appendChild(drag);
+    }
+    card.appendChild(thumb);
+    card.appendChild(body);
     return card;
   }
 
   async function refreshList() {
-    var listPub = $("projectListPublished"), listDraft = $("projectListDrafts");
-    var metaEl = $("projectListMeta"), pubEmpty = $("publishedEmpty"), draftsEmpty = $("draftsEmpty");
-    if (listPub) listPub.innerHTML = "";
+    wireProjectDragDropOnce();
+    var listFeat = $("projectListFeatured"),
+      listNot = $("projectListNotFeatured"),
+      listDraft = $("projectListDrafts");
+    var metaEl = $("projectListMeta"),
+      featEmpty = $("featuredPubEmpty"),
+      notFeatEmpty = $("notFeaturedPubEmpty"),
+      draftsEmpty = $("draftsEmpty");
+    if (listFeat) listFeat.innerHTML = "";
+    if (listNot) listNot.innerHTML = "";
     if (listDraft) listDraft.innerHTML = "";
-    if (metaEl) metaEl.textContent = "";
+    if (metaEl) {
+      metaEl.textContent = "";
+      metaEl.className = "list-meta";
+    }
     var snap = await db.collection("projects").get();
     var groups = new Map();
     snap.forEach(function (doc) {
-      var d = doc.data(), slugKey = (d.slug || doc.id || "").trim() || doc.id;
+      var d = doc.data(),
+        slugKey = (d.slug || doc.id || "").trim() || doc.id;
       var arr = groups.get(slugKey) || [];
       arr.push({ doc: doc, d: d });
       groups.set(slugKey, arr);
     });
-    var hiddenDupes = 0, rows = [];
-    groups.forEach(function (items) { if (items.length > 1) hiddenDupes += items.length - 1; rows.push(pickCanonicalRow(items)); });
-    rows.sort(function (a, b) { return (a.d.sortOrder || 0) - (b.d.sortOrder || 0); });
-    if (metaEl && hiddenDupes > 0) metaEl.textContent = hiddenDupes + " duplicate document(s) hidden (same slug).";
-    var pubRows = rows.filter(function (r) { return !!r.d.published; });
-    var draftRows = rows.filter(function (r) { return !r.d.published; });
-    if (pubEmpty) pubEmpty.hidden = pubRows.length > 0;
+    var hiddenDupes = 0,
+      rows = [];
+    groups.forEach(function (items) {
+      if (items.length > 1) hiddenDupes += items.length - 1;
+      rows.push(pickCanonicalRow(items));
+    });
+    if (metaEl && hiddenDupes > 0)
+      metaEl.textContent = hiddenDupes + " duplicate document(s) hidden (same slug).";
+    var pubRows = rows.filter(function (r) {
+      return !!r.d.published;
+    });
+    var draftRows = rows.filter(function (r) {
+      return !r.d.published;
+    });
+    var featPub = pubRows.filter(function (r) {
+      return !!r.d.featured;
+    });
+    var restPub = pubRows.filter(function (r) {
+      return !r.d.featured;
+    });
+    featPub.sort(function (a, b) {
+      return (a.d.sortOrder || 0) - (b.d.sortOrder || 0);
+    });
+    restPub.sort(function (a, b) {
+      var da = String(a.d.date || "").slice(0, 10);
+      var db = String(b.d.date || "").slice(0, 10);
+      if (da !== db) return db.localeCompare(da);
+      return (a.d.sortOrder || 0) - (b.d.sortOrder || 0);
+    });
+    if (featEmpty) featEmpty.hidden = featPub.length > 0;
+    if (notFeatEmpty) notFeatEmpty.hidden = restPub.length > 0;
     if (draftsEmpty) draftsEmpty.hidden = draftRows.length > 0;
-    pubRows.forEach(function (r) { if (listPub) listPub.appendChild(buildProjectCard(r, function () { openEditProjectModal(r.d, r.doc.id); })); });
-    draftRows.forEach(function (r) { if (listDraft) listDraft.appendChild(buildProjectCard(r, function () { openEditProjectModal(r.d, r.doc.id); })); });
+    featPub.forEach(function (r) {
+      if (listFeat)
+        listFeat.appendChild(
+          buildProjectCard(r, function () {
+            openEditProjectModal(r.d, r.doc.id);
+          }, { draggable: true }),
+        );
+    });
+    restPub.forEach(function (r) {
+      if (listNot)
+        listNot.appendChild(
+          buildProjectCard(r, function () {
+            openEditProjectModal(r.d, r.doc.id);
+          }, { draggable: true }),
+        );
+    });
+    draftRows.forEach(function (r) {
+      if (listDraft)
+        listDraft.appendChild(
+          buildProjectCard(r, function () {
+            openEditProjectModal(r.d, r.doc.id);
+          }, { draggable: false }),
+        );
+    });
   }
 
   async function uploadCover(ev) {

@@ -277,6 +277,18 @@
   padding-bottom: var(--section-y);
 }
 
+/* Projects page: hero + grid read as one block — no dividing line, tighter gap to tiles. */
+body[data-screen-label="Projects"] .page-hero {
+  border-bottom: none;
+  padding-bottom: 56px;
+}
+
+@media (max-width: 900px) {
+  body[data-screen-label="Projects"] .page-hero {
+    padding-bottom: 40px;
+  }
+}
+
 .projects-index .index-head {
   display: flex;
   justify-content: space-between;

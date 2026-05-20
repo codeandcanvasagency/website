@@ -518,8 +518,10 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 
 .logo-track {
   display: flex;
-  gap: 80px;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
+  gap: 80px;
   animation: marquee 40s linear infinite;
   width: max-content;
 }
@@ -527,6 +529,9 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 .logo-track img {
   height: 28px;
   width: auto;
+  max-width: 200px;
+  object-fit: contain;
+  /* White silhouettes on transparent PNGs (partner marks). */
   filter: brightness(0) invert(1);
   opacity: 0.7;
   transition: opacity 200ms;
@@ -536,7 +541,8 @@ p.lead { font-size: 18px; line-height: 1.55; max-width: 56ch; }
 .logo-track img:hover { opacity: 1; }
 
 @keyframes marquee {
-  to { transform: translateX(-50%); }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
 }
 
 /* ---------- Section header ----------------------------------------- */
@@ -572,6 +578,14 @@ body[data-screen-label="Contact"] .offices-section .section-head {
 .projects.projects--tiles {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 40px;
+}
+
+.home-projects-more-wrap {
+  margin-top: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .project-tile {
