@@ -4,6 +4,7 @@
   var filteredPosts = [];
   var currentCategory = "";
   var currentSearch = "";
+  var currentSort = "newest";
   var currentPage = 0;
 
   function esc(s) {
@@ -43,6 +44,8 @@
     var date = fmtDate(p.date);
     var category = esc(p.category || "");
     var read = readMinutes(p);
+    var showMetaDotAfterCategory = !!(category && (read || date));
+    var showMetaDotAfterRead = !!(read && date);
     return (
       '<a href="' + href + '" class="featured-article" data-reveal>' +
       '<div class="featured-media">' +
@@ -51,12 +54,15 @@
       "</div>" +
       '<div class="featured-body">' +
       '<div class="featured-meta">' +
-      (category ? "<span>— " + category + "</span><span>·</span>" : "") +
+      (category ? "<span>— " + category + "</span>" : "") +
+      (showMetaDotAfterCategory ? "<span>·</span>" : "") +
       (read ? "<span>" + read + "</span>" : "") +
-      (date ? "<span>·</span><span>" + date + "</span>" : "") +
+      (showMetaDotAfterRead ? "<span>·</span>" : "") +
+      (date ? "<span>" + date + "</span>" : "") +
       "</div>" +
       "<h3>" + title + "</h3>" +
       (summary ? "<p>" + summary + "</p>" : "") +
+      "</div>" +
       "</a>"
     );
   }
@@ -88,6 +94,21 @@
     );
   }
 
+  function postDateMs(p) {
+    var d = p.date;
+    if (d && typeof d.toDate === "function") d = d.toDate();
+    var dt = d instanceof Date ? d : new Date(d);
+    return isNaN(dt.getTime()) ? 0 : dt.getTime();
+  }
+
+  function sortPosts(arr) {
+    return arr.slice().sort(function (a, b) {
+      var da = postDateMs(a);
+      var db = postDateMs(b);
+      return currentSort === "oldest" ? da - db : db - da;
+    });
+  }
+
   function getFilteredPosts() {
     var result = allPosts;
     if (currentCategory) {
@@ -101,7 +122,31 @@
                (p.category || "").toLowerCase().indexOf(q) !== -1;
       });
     }
-    return result;
+    return sortPosts(result);
+  }
+
+  function renderFilterSelect() {
+    var sel = document.getElementById("blogFilterSelect");
+    if (!sel) return;
+    var counts = {};
+    allPosts.forEach(function (p) {
+      if (p.category) counts[p.category] = (counts[p.category] || 0) + 1;
+    });
+    var sorted = Object.keys(counts).sort();
+    var html = '<option value="">All categories</option>';
+    sorted.forEach(function (c) {
+      html += '<option value="' + esc(c) + '"' +
+        (currentCategory === c ? " selected" : "") + ">" + esc(c) + "</option>";
+    });
+    sel.innerHTML = html;
+    if (!sel._bound) {
+      sel._bound = true;
+      sel.addEventListener("change", function () {
+        currentCategory = sel.value || "";
+        currentPage = 0;
+        applyFilters();
+      });
+    }
   }
 
   function renderCategories() {
@@ -136,6 +181,7 @@
 
   function applyFilters() {
     filteredPosts = getFilteredPosts();
+    renderFilterSelect();
     renderCategories();
     renderFeatured();
     renderGrid();
@@ -150,6 +196,9 @@
       return;
     }
     container.innerHTML = featuredCardHtml(filteredPosts[0]);
+    if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
+      SiteUI.rebindAfterDynamicMount(container);
+    }
   }
 
   function renderGrid() {
@@ -251,6 +300,16 @@
           currentPage = 0;
           applyFilters();
         }, 250);
+      });
+    }
+
+    var sortSelect = document.getElementById("blogSortSelect");
+    if (sortSelect && !sortSelect._bound) {
+      sortSelect._bound = true;
+      sortSelect.addEventListener("change", function () {
+        currentSort = sortSelect.value || "newest";
+        currentPage = 0;
+        applyFilters();
       });
     }
 
