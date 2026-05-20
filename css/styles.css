@@ -1321,7 +1321,7 @@ body[data-screen-label="Contact"] .offices-section .section-head {
 
   /* Projects */
   .projects { gap: 56px; }
-  .projects.projects--tiles { grid-template-columns: 1fr; gap: 40px; }
+  .projects.projects--tiles { grid-template-columns: 1fr; gap: 72px; }
   .project-card h3 { font-size: clamp(24px, 7vw, 32px); }
   .project-card .summary { font-size: 15px; }
 
