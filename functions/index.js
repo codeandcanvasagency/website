@@ -1663,45 +1663,75 @@ function extractResponsesApiText(data) {
   return "";
 }
 
+// Parses the OpenAI error body and returns a short human-readable message
+// (`error.message` when available) plus the original body for logging.
+function parseOpenAiErrorBody(text) {
+  if (!text) return { message: "", body: "" };
+  let message = "";
+  try {
+    const data = JSON.parse(text);
+    if (data && data.error && typeof data.error.message === "string") {
+      message = data.error.message;
+    }
+  } catch (e) {
+    // not JSON — return raw text
+  }
+  return { message: message || text.slice(0, 400), body: text.slice(0, 1500) };
+}
+
 async function callOpenAiResponsesJson({ apiKey, instructions, input, model }) {
+  const requestModel = model || OPENAI_TEXT_MODEL;
+  const requestBody = {
+    model: requestModel,
+    instructions,
+    input,
+    text: {
+      format: { type: "json_object" },
+      verbosity: "medium",
+    },
+    reasoning: { effort: "low" },
+    store: false,
+  };
   const resp = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: model || OPENAI_TEXT_MODEL,
-      instructions,
-      input,
-      text: {
-        format: { type: "json_object" },
-        verbosity: "medium",
-      },
-      reasoning: { effort: "low" },
-      store: false,
-    }),
+    body: JSON.stringify(requestBody),
   });
   if (!resp.ok) {
     const errText = await resp.text().catch(() => "");
+    const parsed = parseOpenAiErrorBody(errText);
     const err = new Error("openai_responses_failed");
     err.status = resp.status;
-    err.detail = errText.slice(0, 500);
+    err.detail = parsed.message || `HTTP ${resp.status}`;
+    err.body = parsed.body;
+    err.model = requestModel;
     throw err;
   }
   const data = await resp.json();
   const content = extractResponsesApiText(data);
-  if (!content) throw new Error("openai_responses_empty");
+  if (!content) {
+    const err = new Error("openai_responses_empty");
+    err.detail = "OpenAI returned no text output";
+    err.body = JSON.stringify(data).slice(0, 1500);
+    err.model = requestModel;
+    throw err;
+  }
   try {
     return JSON.parse(content);
-  } catch (err) {
+  } catch (parseErr) {
     const e = new Error("openai_responses_invalid_json");
-    e.detail = String(content).slice(0, 500);
+    e.detail = "OpenAI returned non-JSON text";
+    e.body = String(content).slice(0, 1500);
+    e.model = requestModel;
     throw e;
   }
 }
 
 async function callOpenAiImageBase64({ apiKey, prompt, size }) {
+  const requestModel = OPENAI_IMAGE_MODEL;
   const resp = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: {
@@ -1709,7 +1739,7 @@ async function callOpenAiImageBase64({ apiKey, prompt, size }) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: OPENAI_IMAGE_MODEL,
+      model: requestModel,
       prompt,
       size: size || OPENAI_IMAGE_SIZE,
       n: 1,
@@ -1717,14 +1747,23 @@ async function callOpenAiImageBase64({ apiKey, prompt, size }) {
   });
   if (!resp.ok) {
     const errText = await resp.text().catch(() => "");
+    const parsed = parseOpenAiErrorBody(errText);
     const err = new Error("openai_image_failed");
     err.status = resp.status;
-    err.detail = errText.slice(0, 500);
+    err.detail = parsed.message || `HTTP ${resp.status}`;
+    err.body = parsed.body;
+    err.model = requestModel;
     throw err;
   }
   const data = await resp.json();
   const b64 = data && data.data && data.data[0] && data.data[0].b64_json;
-  if (!b64) throw new Error("openai_image_empty_response");
+  if (!b64) {
+    const err = new Error("openai_image_empty_response");
+    err.detail = "OpenAI returned no image data";
+    err.body = JSON.stringify(data).slice(0, 1500);
+    err.model = requestModel;
+    throw err;
+  }
   return Buffer.from(b64, "base64");
 }
 
@@ -1924,11 +1963,15 @@ exports.generateBlogPost = onRequest(
         message: err.message,
         status: err.status,
         detail: err.detail,
+        body: err.body,
+        model: err.model || OPENAI_TEXT_MODEL,
       });
       res.status(502).json({
         ok: false,
-        error: "openai_chat_failed",
-        detail: err.message || "",
+        error: err.message || "openai_chat_failed",
+        detail: err.detail || "",
+        upstreamStatus: err.status || null,
+        model: err.model || OPENAI_TEXT_MODEL,
       });
       return;
     }
@@ -1960,6 +2003,7 @@ exports.generateBlogPost = onRequest(
     }
 
     let coverInfo = null;
+    let imageError = null;
     if (brief.generateImage) {
       try {
         const imagePrompt = buildCoverImagePrompt(normalized, brief);
@@ -1978,9 +2022,17 @@ exports.generateBlogPost = onRequest(
           message: err.message,
           status: err.status,
           detail: err.detail,
+          body: err.body,
+          model: err.model || OPENAI_IMAGE_MODEL,
         });
         // Continue without a cover image so the admin can still review the draft.
         normalized.coverImage.url = "";
+        imageError = {
+          message: err.message || "image_failed",
+          detail: err.detail || "",
+          status: err.status || null,
+          model: err.model || OPENAI_IMAGE_MODEL,
+        };
       }
     }
 
@@ -1993,6 +2045,9 @@ exports.generateBlogPost = onRequest(
       cover: coverInfo,
       existingPostsConsidered: existingPosts.length,
       imageGenerated: !!(coverInfo && coverInfo.url),
+      imageError,
+      textModel: OPENAI_TEXT_MODEL,
+      imageModel: OPENAI_IMAGE_MODEL,
     });
   },
 );

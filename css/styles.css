@@ -577,7 +577,7 @@ body[data-screen-label="Contact"] .offices-section .section-head {
 /* Home featured projects: 2-col visual tile grid */
 .projects.projects--tiles {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 40px;
+  gap: 64px;
 }
 
 .home-projects-more-wrap {
@@ -766,12 +766,14 @@ body[data-screen-label="Contact"] .offices-section .section-head {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 480ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  overflow: hidden;
 }
 
 .svc-row.is-open .svc-body { grid-template-rows: 1fr; }
 
 .svc-body-inner {
   overflow: hidden;
+  min-height: 0;
   display: grid;
   grid-template-columns: 80px 1fr 1fr;
   gap: 32px;
@@ -1319,7 +1321,7 @@ body[data-screen-label="Contact"] .offices-section .section-head {
 
   /* Projects */
   .projects { gap: 56px; }
-  .projects.projects--tiles { grid-template-columns: 1fr; gap: 28px; }
+  .projects.projects--tiles { grid-template-columns: 1fr; gap: 40px; }
   .project-card h3 { font-size: clamp(24px, 7vw, 32px); }
   .project-card .summary { font-size: 15px; }
 
@@ -1338,12 +1340,27 @@ body[data-screen-label="Contact"] .offices-section .section-head {
   .svc-body-inner {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
-    padding: 16px 0 28px !important;
+    padding: 0 !important;
   }
+  .svc-row.is-open .svc-body-inner { padding: 16px 0 28px !important; }
   .svc-image { grid-column: 1 / -1 !important; margin-top: 16px !important; }
 
   /* Carousel */
   .carousel-card { width: min(280px, 75vw); }
+  #cc-latest-projects .carousel-card {
+    width: 100%;
+    max-width: none;
+  }
+  #cc-blog-section .carousel-card {
+    width: 100%;
+    max-width: none;
+  }
+  #cc-latest-projects .carousel-track {
+    scroll-snap-type: x mandatory;
+  }
+  #cc-blog-section .carousel-track {
+    scroll-snap-type: x mandatory;
+  }
   .carousel-card .title { font-size: 18px; }
   .carousel-arrows { gap: 8px; }
 
@@ -1599,6 +1616,8 @@ body[data-screen-label="Contact"] .offices-section .section-head {
   justify-content: center;
   color: var(--paper);
   flex-shrink: 0;
+  position: relative;
+  z-index: 121;
 }
 .menu-toggle svg { width: 18px; height: 18px; }
 .menu-toggle .icon-close { display: none; }
@@ -1606,7 +1625,7 @@ body[data-screen-label="Contact"] .offices-section .section-head {
 .menu-toggle.is-open .icon-close { display: block; }
 
 .mobile-nav {
-  display: none;
+  display: flex;
   position: fixed;
   inset: 0;
   background: var(--ink-900);
@@ -1615,8 +1634,57 @@ body[data-screen-label="Contact"] .offices-section .section-head {
   padding: 88px 24px 32px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-14px) scale(0.985);
+  transform-origin: top center;
+  transition:
+    opacity 280ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    visibility 0s linear 320ms;
 }
-.mobile-nav.is-open { display: flex; }
+.mobile-nav.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 280ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    visibility 0s;
+}
+
+/* Animate drawer contents in/out with a subtle stagger. */
+.mobile-nav > * {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.mobile-nav.is-open > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+.mobile-nav.is-open > :nth-child(1) { transition-delay: 35ms; }
+.mobile-nav.is-open > :nth-child(2) { transition-delay: 55ms; }
+.mobile-nav.is-open > :nth-child(3) { transition-delay: 75ms; }
+.mobile-nav.is-open > :nth-child(4) { transition-delay: 95ms; }
+.mobile-nav.is-open > :nth-child(5) { transition-delay: 115ms; }
+.mobile-nav.is-open > :nth-child(6) { transition-delay: 135ms; }
+.mobile-nav.is-open > :nth-child(7) { transition-delay: 155ms; }
+.mobile-nav.is-open > :nth-child(8) { transition-delay: 175ms; }
+
+/* Keep the header toggle above the fullscreen menu so it remains usable as close. */
+body.mobile-menu-open .header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 120;
+}
 
 .mobile-nav a {
   display: block;
@@ -1702,10 +1770,29 @@ body[data-screen-label="Contact"] .offices-section .section-head {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-bottom: 1px solid var(--line-100);
-  padding: 8px 0 16px;
+  border-bottom: 1px solid transparent;
+  padding: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition:
+    max-height 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 220ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    padding 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .mobile-nav .mn-services[hidden] { display: none; }
+.mobile-nav .mn-services.is-open {
+  border-bottom-color: var(--line-100);
+  padding: 8px 0 16px;
+  max-height: 640px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
 .mobile-nav .mn-services a {
   font-size: 18px;
   padding: 12px 0 12px 20px;
@@ -1755,7 +1842,10 @@ body[data-screen-label="Contact"] .offices-section .section-head {
 }
 
 /* Universal overflow guards */
-html, body { overflow-x: hidden; }
+/* Use `clip` instead of `hidden` so we don't establish a scroll container
+   on <html>/<body>, which would silently break `position: sticky` for
+   descendants (e.g. the project detail cover image). */
+html, body { overflow-x: clip; }
 img, svg, video { max-width: 100%; }
 
 /* ============================================================

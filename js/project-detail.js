@@ -86,21 +86,69 @@
     return bits.filter(Boolean).join(" · ");
   }
 
-  function gallerySection(p) {
-    var urls = (p.galleryUrls || []).filter(Boolean);
+  function preloadImage(url, fetchPriority) {
+    if (!url) return;
+    var href = String(url);
+    var resolvedHref = href;
+    try {
+      resolvedHref = new URL(href, location.href).href;
+    } catch (_) {}
+    var links = document.querySelectorAll('link[rel="preload"][as="image"]');
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].href === resolvedHref) return;
+    }
+    var link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = resolvedHref;
+    if (fetchPriority) link.setAttribute("fetchpriority", fetchPriority);
+    document.head.appendChild(link);
+  }
+
+  function markImageLoaded(img) {
+    if (!img) return;
+    img.classList.add("is-loaded");
+  }
+
+  function bindImageLoadStates(root) {
+    if (!root) return;
+    var imgs = root.querySelectorAll("img[data-img-state]");
+    imgs.forEach(function (img) {
+      if (img.complete && img.naturalWidth > 0) {
+        markImageLoaded(img);
+        return;
+      }
+      img.addEventListener("load", function () {
+        markImageLoaded(img);
+      }, { once: true });
+      img.addEventListener("error", function () {
+        markImageLoaded(img);
+      }, { once: true });
+    });
+  }
+
+  function galleryGridSection(urls) {
     if (!urls.length) return "";
-    var hero = urls[0];
-    var rest = urls.slice(1);
-    var grid = rest.map(function (u) {
-      return '<div><img loading="lazy" decoding="async" src="' + esc(u) + '" alt="" /></div>';
+    var grid = urls.map(function (u) {
+      return '<div><img data-img-state loading="lazy" decoding="async" src="' + esc(u) + '" alt="" /></div>';
     }).join("");
     return (
-      '<section class="detail-gallery" style="padding-top: 80px">' +
+      '<section class="detail-gallery">' +
       '<div class="container">' +
-      '<div class="gallery-hero" data-reveal>' +
-      '<img loading="lazy" decoding="async" src="' + esc(hero) + '" alt="' + esc(p.title || "") + '" />' +
+      '<div class="gallery-grid" data-reveal>' + grid + "</div>" +
+      "</div></section>"
+    );
+  }
+
+  function inlineGalleryImage(url, altText, sectionModifier) {
+    if (!url) return "";
+    var sectionClass = "detail-inline-media" + (sectionModifier ? " " + sectionModifier : "");
+    return (
+      '<section class="' + sectionClass + '">' +
+      '<div class="container">' +
+      '<div class="detail-inline-media-frame" data-reveal>' +
+      '<img data-img-state loading="eager" fetchpriority="high" decoding="async" src="' + esc(url) + '" alt="' + esc(altText || "") + '" />' +
       "</div>" +
-      (rest.length ? '<div class="gallery-grid" data-reveal>' + grid + "</div>" : "") +
       "</div></section>"
     );
   }
@@ -128,9 +176,9 @@
         });
         if (!next) { root.innerHTML = ""; return; }
         root.innerHTML =
-          '<section class="section" style="padding-top: 0">' +
+          '<section class="section next-project-section" style="padding-top: 0; padding-bottom: 0">' +
           '<div class="container">' +
-          '<div class="section-head" style="border-top: 1px solid var(--ink-line); padding-top: 64px">' +
+          '<div class="section-head next-project-head" style="border-top: 1px solid var(--ink-line); padding-top: 64px">' +
           '<div class="head-left">' +
           '<div class="eyebrow">Next project</div>' +
           '<h2 class="display-3">' + esc(next.title || "View project") + "</h2>" +
@@ -157,6 +205,11 @@
       statBlock("Duration", p.duration);
 
     var body = buildCaseBody(p);
+    var galleryUrls = (p.galleryUrls || []).filter(Boolean);
+    var imageBelowHero = galleryUrls[1] || "";
+    var galleryGridUrls = galleryUrls.slice(2);
+    preloadImage(cover, "high");
+    preloadImage(imageBelowHero, "high");
 
     root.innerHTML =
       '<section class="page-hero detail-hero">' +
@@ -168,22 +221,25 @@
       '<div class="detail-hero-copy">' +
       "<h1>" + esc(p.title || "Project") + "</h1>" +
       (p.summary ? '<p class="lead">' + esc(p.summary) + "</p>" : "") +
-      (stats ? '<div class="detail-stats">' + stats + "</div>" : "") +
       "</div>" +
       '<div class="detail-cover" data-reveal>' +
-      '<img loading="lazy" decoding="async" src="' + esc(cover) + '" alt="' + esc(p.title || "") + '" />' +
+      '<img data-img-state loading="eager" fetchpriority="high" decoding="async" src="' + esc(cover) + '" alt="' + esc(p.title || "") + '" />' +
       "</div>" +
+      (stats ? '<div class="detail-stats">' + stats + "</div>" : "") +
       "</div>" +
       "</div></section>" +
+      inlineGalleryImage(imageBelowHero, p.title || "", "detail-inline-media--hero") +
       (body
         ? "<section><div class=\"container\"><div class=\"case-body\" data-reveal>" + body + "</div></div></section>"
         : "") +
+      galleryGridSection(galleryGridUrls) +
       '<section><div class="container"><div class="detail-cta" data-reveal>' +
       '<h3>Have a project that needs <span class="italic">this kind of care?</span></h3>' +
       '<a href="/contact" class="btn btn-primary">Let\'s chat <span class="arrow"></span></a>' +
       "</div></div></section>" +
-      gallerySection(p) +
       '<div id="project-next-root"></div>';
+
+    bindImageLoadStates(root);
 
     if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
       SiteUI.rebindAfterDynamicMount(root);

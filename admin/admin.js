@@ -2190,7 +2190,12 @@
     setBlogAiStatus("ok", "");
   }
 
-  function describeBlogAiError(code, detail) {
+  function describeBlogAiError(data) {
+    var code = (data && data.error) || "unknown";
+    var detail = (data && data.detail) || "";
+    var upstream = data && data.upstreamStatus ? " [HTTP " + data.upstreamStatus + "]" : "";
+    var model = data && data.model ? " (model: " + data.model + ")" : "";
+    var detailSuffix = detail ? " \u2014 " + detail : "";
     switch (code) {
       case "missing_token":
       case "token_expired":
@@ -2203,17 +2208,24 @@
       case "missing_topic":
         return "Add a topic before generating.";
       case "openai_key_missing":
-        return "OpenAI key isn\u2019t configured on the server. Set the OPENAI_API_KEY secret.";
+        return "OpenAI key isn\u2019t configured. Add OPENAI_API_KEY to functions/.env and redeploy.";
+      case "openai_responses_failed":
       case "openai_chat_failed":
-        return "OpenAI didn\u2019t respond. Try again in a moment." + (detail ? " (" + detail + ")" : "");
+        return "OpenAI rejected the request" + upstream + model + detailSuffix;
+      case "openai_responses_empty":
+        return "OpenAI returned no text" + model + detailSuffix;
+      case "openai_responses_invalid_json":
+        return "OpenAI returned non-JSON" + model + detailSuffix;
+      case "openai_refusal":
+        return "OpenAI refused the request" + detailSuffix;
       case "ai_output_invalid":
-        return "The AI response wasn\u2019t valid for our schema." + (detail ? " (" + detail + ")" : "");
+        return "AI response didn\u2019t match the blog schema" + detailSuffix;
       case "existing_posts_failed":
         return "Couldn\u2019t read existing posts. Try again.";
       case "slug_check_failed":
         return "Couldn\u2019t reserve a unique slug. Try again.";
       default:
-        return "Generation failed" + (code ? " (" + code + ")" : "") + ".";
+        return "Generation failed (" + code + ")" + detailSuffix;
     }
   }
 
@@ -2258,7 +2270,7 @@
       });
       var data = await resp.json().catch(function () { return {}; });
       if (!resp.ok || !data.ok) {
-        setBlogAiStatus("err", describeBlogAiError(data.error || "unknown", data.detail));
+        setBlogAiStatus("err", describeBlogAiError(data));
         return;
       }
       if (!data.payload || typeof data.payload !== "object") {
@@ -2281,10 +2293,20 @@
 
       var summary = "Draft loaded into the form. Review before saving.";
       summary += " Considered " + (data.existingPostsConsidered || 0) + " existing posts.";
+      if (data.textModel) summary += " Text: " + data.textModel + ".";
       if (data.imageGenerated) {
-        summary += " Cover image uploaded to Firebase Storage.";
+        summary += " Cover image uploaded to Firebase Storage";
+        if (data.imageModel) summary += " (" + data.imageModel + ")";
+        summary += ".";
       } else if (payload.generateImage) {
-        summary += " Cover image generation skipped or failed — add one manually if needed.";
+        if (data.imageError && data.imageError.detail) {
+          summary += " Cover image failed (" + (data.imageError.model || "image model") + "): "
+            + data.imageError.detail
+            + (data.imageError.status ? " [HTTP " + data.imageError.status + "]" : "")
+            + ". Add a cover manually.";
+        } else {
+          summary += " Cover image generation skipped or failed — add one manually if needed.";
+        }
       }
       setBlogAiStatus("ok", summary);
 

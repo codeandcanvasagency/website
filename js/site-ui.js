@@ -65,15 +65,19 @@
       btn.classList.remove("is-open");
       menu.classList.remove("is-open");
       btn.setAttribute("aria-expanded", "false");
+      btn.setAttribute("aria-label", "Open menu");
       menu.setAttribute("aria-hidden", "true");
       document.body.style.overflow = "";
+      document.body.classList.remove("mobile-menu-open");
     }
     function open() {
       btn.classList.add("is-open");
       menu.classList.add("is-open");
       btn.setAttribute("aria-expanded", "true");
+      btn.setAttribute("aria-label", "Close menu");
       menu.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
+      document.body.classList.add("mobile-menu-open");
     }
     btn.addEventListener("click", function () {
       if (btn.classList.contains("is-open")) close();
@@ -96,16 +100,31 @@
       var listId = btn.getAttribute("aria-controls");
       var list = listId ? document.getElementById(listId) : row.nextElementSibling;
       if (!list) return;
+      var closeTimer = null;
 
       function setOpen(open) {
+        if (closeTimer) {
+          window.clearTimeout(closeTimer);
+          closeTimer = null;
+        }
+
         if (open) {
           list.removeAttribute("hidden");
-          row.classList.add("is-open");
-          list.classList.add("is-open");
+          // Ensure hidden removal is painted before adding the open class.
+          window.requestAnimationFrame(function () {
+            row.classList.add("is-open");
+            list.classList.add("is-open");
+          });
         } else {
-          list.setAttribute("hidden", "");
           row.classList.remove("is-open");
           list.classList.remove("is-open");
+          // Wait for the close transition before removing from layout/accessibility tree.
+          closeTimer = window.setTimeout(function () {
+            if (btn.getAttribute("aria-expanded") !== "true") {
+              list.setAttribute("hidden", "");
+            }
+            closeTimer = null;
+          }, 320);
         }
         btn.setAttribute("aria-expanded", open ? "true" : "false");
       }
@@ -190,8 +209,95 @@
         var card = track.querySelector(".carousel-card");
         return card ? card.offsetWidth + 24 : 320;
       }
-      if (prev) prev.addEventListener("click", function () { track.scrollBy({ left: -step(), behavior: "smooth" }); });
-      if (next) next.addEventListener("click", function () { track.scrollBy({ left: step(), behavior: "smooth" }); });
+      if (prev && !prev.__ccCarouselBound) {
+        prev.__ccCarouselBound = true;
+        prev.addEventListener("click", function () { track.scrollBy({ left: -step(), behavior: "smooth" }); });
+      }
+      if (next && !next.__ccCarouselBound) {
+        next.__ccCarouselBound = true;
+        next.addEventListener("click", function () { track.scrollBy({ left: step(), behavior: "smooth" }); });
+      }
+
+      // Home latest-projects + blog carousels: autoplay one card at a time on mobile.
+      var isAutoTrack = track.id === "latestTrack" || track.id === "blogTrack";
+      if (!isAutoTrack || track.__ccLatestAutoBound) return;
+      track.__ccLatestAutoBound = true;
+
+      var autoTimer = null;
+      var AUTO_DELAY_MS = 3000;
+
+      function isMobileViewport() {
+        return window.matchMedia("(max-width: 640px)").matches;
+      }
+
+      function cards() {
+        return Array.prototype.slice.call(track.querySelectorAll(".carousel-card"));
+      }
+
+      function currentIndex(cardEls) {
+        if (!cardEls.length) return 0;
+        var left = track.scrollLeft;
+        var idx = 0;
+        var minDelta = Infinity;
+        cardEls.forEach(function (el, i) {
+          var delta = Math.abs(el.offsetLeft - left);
+          if (delta < minDelta) {
+            minDelta = delta;
+            idx = i;
+          }
+        });
+        return idx;
+      }
+
+      function goToIndex(idx) {
+        var cardEls = cards();
+        if (!cardEls.length) return;
+        var safe = ((idx % cardEls.length) + cardEls.length) % cardEls.length;
+        track.scrollTo({ left: cardEls[safe].offsetLeft, behavior: "smooth" });
+      }
+
+      function stopAutoplay() {
+        if (autoTimer) {
+          clearInterval(autoTimer);
+          autoTimer = null;
+        }
+      }
+
+      function startAutoplay() {
+        stopAutoplay();
+        if (!isMobileViewport()) return;
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        if (cards().length < 2) return;
+        autoTimer = setInterval(function () {
+          var cardEls = cards();
+          if (!cardEls.length) return;
+          goToIndex(currentIndex(cardEls) + 1);
+        }, AUTO_DELAY_MS);
+      }
+
+      function restartAutoplay() {
+        stopAutoplay();
+        if (isMobileViewport()) {
+          window.setTimeout(startAutoplay, AUTO_DELAY_MS);
+        }
+      }
+
+      track.addEventListener("touchstart", restartAutoplay, { passive: true });
+      track.addEventListener("pointerdown", restartAutoplay);
+      track.addEventListener("wheel", restartAutoplay, { passive: true });
+      if (prev) prev.addEventListener("click", restartAutoplay);
+      if (next) next.addEventListener("click", restartAutoplay);
+
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) stopAutoplay();
+        else startAutoplay();
+      });
+      window.addEventListener("resize", function () {
+        if (!isMobileViewport()) stopAutoplay();
+        else startAutoplay();
+      });
+
+      startAutoplay();
     });
   }
 
@@ -235,7 +341,7 @@
 
     function start() {
       if (autoTimer) clearInterval(autoTimer);
-      autoTimer = setInterval(function () { go(i + 1); }, 7000);
+      autoTimer = setInterval(function () { go(i + 1); }, 3000);
     }
     function restart() { start(); }
 

@@ -48,6 +48,47 @@
     return origin + (url.charAt(0) === "/" ? url : "/" + url);
   }
 
+  function preloadImage(url, fetchPriority) {
+    if (!url) return;
+    var href = String(url);
+    var resolvedHref = href;
+    try {
+      resolvedHref = new URL(href, location.href).href;
+    } catch (_) {}
+    var links = document.querySelectorAll('link[rel="preload"][as="image"]');
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].href === resolvedHref) return;
+    }
+    var link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = resolvedHref;
+    if (fetchPriority) link.setAttribute("fetchpriority", fetchPriority);
+    document.head.appendChild(link);
+  }
+
+  function markImageLoaded(img) {
+    if (!img) return;
+    img.classList.add("is-loaded");
+  }
+
+  function bindImageLoadStates(root) {
+    if (!root) return;
+    var imgs = root.querySelectorAll("img[data-img-state]");
+    imgs.forEach(function (img) {
+      if (img.complete && img.naturalWidth > 0) {
+        markImageLoaded(img);
+        return;
+      }
+      img.addEventListener("load", function () {
+        markImageLoaded(img);
+      }, { once: true });
+      img.addEventListener("error", function () {
+        markImageLoaded(img);
+      }, { once: true });
+    });
+  }
+
   function upsertMeta(attr, key, content) {
     if (!content) return;
     var sel = attr === "property"
@@ -301,7 +342,7 @@
         if (!b.url) return "";
         return (
           '<figure class="article-figure">' +
-            '<img loading="lazy" decoding="async" src="' + esc(b.url) + '" alt="' + esc(b.alt || "") + '" />' +
+            '<img data-img-state loading="lazy" decoding="async" src="' + esc(b.url) + '" alt="' + esc(b.alt || "") + '" />' +
             (b.caption ? "<figcaption>" + esc(b.caption) + "</figcaption>" : "") +
           "</figure>"
         );
@@ -421,7 +462,7 @@
         '<div class="container">' +
           '<div class="author-card" data-reveal>' +
             '<div class="author-portrait">' +
-              (avatar ? '<img loading="lazy" decoding="async" src="' + esc(avatar) + '" alt="' + esc(name) + '" />' : "") +
+              (avatar ? '<img data-img-state loading="lazy" decoding="async" src="' + esc(avatar) + '" alt="' + esc(name) + '" />' : "") +
             "</div>" +
             '<div class="author-body">' +
               '<span class="cm-label">\u2014 About the author</span>' +
@@ -451,7 +492,7 @@
     return (
       '<a href="' + href + '" class="post-card" data-reveal>' +
         '<div class="post-media">' +
-          '<img loading="lazy" decoding="async" src="' + img + '" alt="' + alt + '" />' +
+          '<img data-img-state loading="lazy" decoding="async" src="' + img + '" alt="' + alt + '" />' +
         "</div>" +
         '<div class="post-body">' +
           '<div class="post-meta">' +
@@ -541,6 +582,8 @@
     var read = readMinutesText(p.readingTimeMinutes);
     var titleHtml = renderTitleHtml(p.title || "Blog Post");
     var author = p.author || {};
+    preloadImage(cover, "high");
+    if (author.avatarUrl) preloadImage(author.avatarUrl, "high");
 
     root.innerHTML =
       '<div class="reading-progress" data-reading-progress></div>' +
@@ -557,7 +600,7 @@
               (author.name
                 ? '<div class="byline-author">' +
                     (author.avatarUrl
-                      ? '<span class="avatar"><img loading="lazy" decoding="async" src="' + esc(author.avatarUrl) + '" alt="' + esc(author.name) + '"/></span>'
+                      ? '<span class="avatar"><img data-img-state loading="eager" fetchpriority="high" decoding="async" src="' + esc(author.avatarUrl) + '" alt="' + esc(author.name) + '"/></span>'
                       : "") +
                     "<div>" +
                       '<span class="byline-name">' + esc(author.name) + "</span>" +
@@ -573,7 +616,7 @@
         "</section>" +
         '<div class="container">' +
           '<div class="article-cover">' +
-            '<img loading="lazy" decoding="async" src="' + esc(cover) + '" alt="' + esc(coverAlt) + '" />' +
+            '<img data-img-state loading="eager" fetchpriority="high" decoding="async" src="' + esc(cover) + '" alt="' + esc(coverAlt) + '" />' +
           "</div>" +
         "</div>" +
         '<section class="article-body-section">' +
@@ -588,6 +631,8 @@
       "</article>" +
       finalCtaHtml(p.finalCta) +
       relatedHtml(p.related);
+
+    bindImageLoadStates(root);
 
     if (window.SiteUI && SiteUI.rebindArticle) {
       SiteUI.rebindArticle(root);
