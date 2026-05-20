@@ -73,6 +73,85 @@
     el.setAttribute("href", href);
   }
 
+  function toIsoDate(value) {
+    if (!value) return "";
+    if (typeof value === "object" && typeof value.toDate === "function") {
+      return value.toDate().toISOString();
+    }
+    if (value instanceof Date) return value.toISOString();
+    var d = new Date(value);
+    if (!isNaN(d.getTime())) return d.toISOString();
+    return "";
+  }
+
+  function upsertJsonLd(id, data) {
+    var el = document.getElementById(id);
+    if (!data) {
+      if (el) el.remove();
+      return;
+    }
+    if (!el) {
+      el = document.createElement("script");
+      el.type = "application/ld+json";
+      el.id = id;
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify(data);
+  }
+
+  function setBlogJsonLd(post, slug) {
+    if (!post) {
+      upsertJsonLd("cc-blog-article-jsonld", null);
+      return;
+    }
+    var seo = post.seo || {};
+    var headline = plainText(seo.metaTitle || post.title || "Article");
+    var description = (seo.metaDescription || post.summary || "").trim().slice(0, 500);
+    var canonical = blogCanonicalUrl(slug);
+    var cover = post.coverImage || {};
+    var image = absoluteAssetUrl(cover.url);
+    var datePublished = toIsoDate(post.publishedAt);
+    var dateModified = toIsoDate(post.updatedAt) || datePublished;
+    var author = post.author || {};
+    var authorNode = author.name
+      ? {
+          "@type": "Person",
+          name: author.name,
+          url: author.linkedinUrl || undefined,
+        }
+      : {
+          "@type": "Organization",
+          name: "Code & Canvas",
+          url: siteOrigin(),
+        };
+    if (authorNode.url === undefined) delete authorNode.url;
+
+    var publisher = {
+      "@type": "Organization",
+      name: "Code & Canvas",
+      url: siteOrigin(),
+      logo: {
+        "@type": "ImageObject",
+        url: siteOrigin() + "/images/favicon.png",
+      },
+    };
+
+    var data = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: headline,
+      description: description,
+      image: [image],
+      url: canonical,
+      mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+      author: authorNode,
+      publisher: publisher,
+    };
+    if (datePublished) data.datePublished = datePublished;
+    if (dateModified) data.dateModified = dateModified;
+    upsertJsonLd("cc-blog-article-jsonld", data);
+  }
+
   function shareTweetText(post) {
     var title = plainText(post.title || "");
     var summary = plainText(post.summary || "");
@@ -243,9 +322,89 @@
     return heading + blocks;
   }
 
-  function bodyHtml(sections) {
+  var DEFAULT_MID_CTA = {
+    eyebrow: "Studio note",
+    title: 'Need a sharper <span class="italic">digital presence?</span>',
+    text: "We help teams turn strategy, design, and engineering into websites that are clear, fast, and ready to grow.",
+    primaryLabel: "Start a project",
+    primaryUrl: "/contact",
+    secondaryLabel: "See our work",
+    secondaryUrl: "/projects",
+  };
+
+  var DEFAULT_FINAL_CTA = {
+    eyebrow: "Ready when you are",
+    title: 'Let us turn the next idea into a <span class="italic">working product.</span>',
+    text: "Bring us the brief, the half-formed plan, or the messy rebuild. We will help shape the next move.",
+    primaryLabel: "Book a call",
+    primaryUrl: "/contact",
+    secondaryLabel: "Explore services",
+    secondaryUrl: "/services",
+  };
+
+  function ctaLinkAttrs(url) {
+    var href = url || "/contact";
+    var attrs = ' href="' + esc(href) + '"';
+    if (/^https?:\/\//i.test(href)) attrs += ' target="_blank" rel="noopener noreferrer"';
+    return attrs;
+  }
+
+  function ctaConfig(raw, defaults) {
+    if (raw === false || (raw && raw.enabled === false)) return null;
+    var c = raw && typeof raw === "object" ? raw : {};
+    return {
+      eyebrow: c.eyebrow || c.label || defaults.eyebrow,
+      title: c.title || c.heading || defaults.title,
+      text: c.text || c.body || c.description || defaults.text,
+      primaryLabel: c.primaryLabel || c.buttonLabel || c.ctaLabel || defaults.primaryLabel,
+      primaryUrl: c.primaryUrl || c.buttonUrl || c.ctaUrl || c.url || defaults.primaryUrl,
+      secondaryLabel: c.secondaryLabel || defaults.secondaryLabel,
+      secondaryUrl: c.secondaryUrl || defaults.secondaryUrl,
+    };
+  }
+
+  function ctaActionsHtml(c) {
+    var secondary = c.secondaryLabel && c.secondaryUrl
+      ? '<a class="btn btn-ghost"' + ctaLinkAttrs(c.secondaryUrl) + ">" + esc(c.secondaryLabel) + "</a>"
+      : "";
+    return (
+      '<div class="article-cta-actions">' +
+        '<a class="btn btn-primary"' + ctaLinkAttrs(c.primaryUrl) + ">" +
+          esc(c.primaryLabel || "Start a project") +
+          '<span class="arrow"></span>' +
+        "</a>" +
+        secondary +
+      "</div>"
+    );
+  }
+
+  function articleCtaHtml(raw, defaults, variant) {
+    var c = ctaConfig(raw, defaults);
+    if (!c) return "";
+    return (
+      '<aside class="article-cta article-cta-' + esc(variant) + '" data-reveal>' +
+        '<div class="article-cta-copy">' +
+          (c.eyebrow ? '<span class="cm-label">' + esc(c.eyebrow) + "</span>" : "") +
+          (c.title ? "<h3>" + renderTitleHtml(c.title) + "</h3>" : "") +
+          (c.text ? "<p>" + esc(c.text) + "</p>" : "") +
+        "</div>" +
+        ctaActionsHtml(c) +
+      "</aside>"
+    );
+  }
+
+  function finalCtaHtml(raw) {
+    var html = articleCtaHtml(raw, DEFAULT_FINAL_CTA, "final");
+    if (!html) return "";
+    return '<section class="article-final-cta"><div class="container">' + html + "</div></section>";
+  }
+
+  function bodyHtml(sections, midCta) {
     if (!Array.isArray(sections) || !sections.length) return "";
-    return sections.map(sectionHtml).join("");
+    var insertAfter = Math.max(1, Math.ceil(sections.length / 2));
+    return sections.map(function (s, idx) {
+      return sectionHtml(s) + (idx + 1 === insertAfter ? articleCtaHtml(midCta, DEFAULT_MID_CTA, "mid") : "");
+    }).join("");
   }
 
   function authorHtml(author) {
@@ -373,6 +532,7 @@
     var shareUrl = blogCanonicalUrl(slug);
     var tweetText = shareTweetText(p);
     setShareMeta(p, slug);
+    setBlogJsonLd(p, slug);
 
     var coverImg = p.coverImage || {};
     var cover = coverImg.url || "/images/image-placeholder.svg";
@@ -420,12 +580,13 @@
           '<div class="container">' +
             '<div class="article-layout">' +
               tocHtml(p.toc, p.body, shareUrl, tweetText) +
-              '<div class="article-prose">' + bodyHtml(p.body) + "</div>" +
+              '<div class="article-prose">' + bodyHtml(p.body, p.midCta) + "</div>" +
             "</div>" +
           "</div>" +
         "</section>" +
         authorHtml(author) +
       "</article>" +
+      finalCtaHtml(p.finalCta) +
       relatedHtml(p.related);
 
     if (window.SiteUI && SiteUI.rebindArticle) {

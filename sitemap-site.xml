@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://code-and-canvas.web.app/</loc><priority>1.0</priority></url>
+  <url><loc>https://code-and-canvas.web.app/about</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/blog</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/blog-category/branding</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/blog-category/design</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/blog-category/ui-ux</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/contact</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/projects</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/projects/hoddle</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/projects/shilaking</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/projects/maal-monkeys</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/service-categories/ai-automation</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/service-categories/brand-design</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/service-categories/business-development</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/service-categories/data-optimisation</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/service-categories/development</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/service-categories/ui-ux-design</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/services</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/services/bespoke-it-solutions</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/services/branding-strategy</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/services/data-driven-optimisation</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/services/platform-app-development</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/services/search-optimisation</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/services/technical-innovation-automation</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/services/website-development</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/team/john-carter</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/team/lily-woods</loc><priority>0.8</priority></url>
+  <url><loc>https://code-and-canvas.web.app/team/sophie-moore</loc><priority>0.8</priority></url>
+</urlset>

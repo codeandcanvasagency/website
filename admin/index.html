@@ -117,6 +117,27 @@
       .repeater-item.dragging { opacity: 0.45; }
       .small-upload { font-size: 0.78rem; color: #888; }
       .small-upload input { font-size: 0.78rem; }
+
+      /* ── AI blog generator ── */
+      details.blog-ai-generator {
+        margin: 0 0 18px; padding: 14px 16px; border-radius: 10px;
+        border: 1px solid #2f2a4a; background: linear-gradient(180deg, #161427 0%, #11101c 100%);
+      }
+      details.blog-ai-generator[hidden] { display: none !important; }
+      details.blog-ai-generator > summary {
+        cursor: pointer; list-style: none; font-size: 0.95rem; font-weight: 600;
+        color: #c9c0ff; display: flex; align-items: center; gap: 8px;
+      }
+      details.blog-ai-generator > summary::-webkit-details-marker { display: none; }
+      details.blog-ai-generator > summary::before {
+        content: "✦"; font-size: 1rem; color: #a899ff;
+      }
+      details.blog-ai-generator .blog-ai-hint {
+        font-weight: 400; color: #8a8aa0; font-size: 0.82rem;
+      }
+      details.blog-ai-generator .blog-ai-body { margin-top: 4px; }
+      #blogAiStatus.ok { color: #a899ff; }
+      #blogAiStatus.err { color: #ff8a8a; }
     </style>
     <script src="/js/firebase-config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -274,6 +295,8 @@
               <label style="margin-top:12px">Body HTML <textarea id="bodyHtml" style="min-height:160px"></textarea></label>
             </details>
             <label>Gallery image URLs (one per line) <textarea id="galleryUrls" placeholder="https://…"></textarea></label>
+            <label>Upload gallery images (Storage) <input type="file" id="galleryFiles" accept="image/*" multiple /></label>
+            <div id="galleryUploadStatus" class="ok"></div>
             <details class="advanced" id="projectJsonWrap" open>
               <summary>JSON view <span style="color:#666">— edit fields above to update this, or paste JSON here to update the fields. Last edit wins.</span></summary>
               <label style="margin-top:12px">Project JSON
@@ -408,6 +431,57 @@
           <form id="blogForm">
             <input type="hidden" id="blogEditId" />
 
+            <!-- AI generator (shown only for new posts) -->
+            <details class="blog-ai-generator" id="blogAiGenerator" open>
+              <summary>Generate with AI <span class="blog-ai-hint">— review the existing blog, draft content and a cover image, then load it into the form below.</span></summary>
+              <div class="blog-ai-body">
+                <p class="blog-section-hint" style="margin-top:8px">
+                  The assistant reviews every existing post first so it can avoid duplicate angles and only link to articles that actually exist. Nothing is saved or published until you click <strong>Save draft</strong> or <strong>Save &amp; publish</strong>.
+                </p>
+                <label>Topic / working title * <input type="text" id="blogAiTopic" autocomplete="off" placeholder="e.g. How to brief a brand refresh without slowing your roadmap" /></label>
+                <div class="grid-2">
+                  <label>Audience <input type="text" id="blogAiAudience" autocomplete="off" placeholder="e.g. Series-A founders, product leads" /></label>
+                  <label>Target keyword <input type="text" id="blogAiKeyword" autocomplete="off" placeholder="e.g. brand refresh process" /></label>
+                </div>
+                <div class="grid-2">
+                  <label>Category hint <input type="text" id="blogAiCategory" autocomplete="off" placeholder="e.g. Branding, Engineering" /></label>
+                  <label>Tone
+                    <select id="blogAiTone">
+                      <option value="studio">Studio (default)</option>
+                      <option value="expert">Expert / authoritative</option>
+                      <option value="friendly">Friendly</option>
+                      <option value="conversational">Conversational</option>
+                      <option value="practical">Practical / how-to</option>
+                      <option value="thought-leader">Thought leader</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="grid-2">
+                  <label>Sections (target) <input type="number" id="blogAiSections" min="2" max="8" step="1" value="4" /></label>
+                  <label>Cover image style
+                    <select id="blogAiImageStyle">
+                      <option value="editorial">Editorial (default)</option>
+                      <option value="abstract">Abstract</option>
+                      <option value="minimal">Minimal</option>
+                      <option value="illustrative">Illustrative</option>
+                      <option value="photography">Photography</option>
+                      <option value="studio">Studio composition</option>
+                    </select>
+                  </label>
+                </div>
+                <label>Notes (optional) <textarea id="blogAiNotes" placeholder="Key points, examples to reference, things to avoid, calls to action…"></textarea></label>
+                <label style="display:flex;align-items:center;gap:8px;margin-top:12px">
+                  <input type="checkbox" id="blogAiGenerateImage" checked style="width:auto;margin:0" />
+                  <span>Also generate a 16:9 cover image and upload it to Firebase Storage</span>
+                </label>
+                <div class="row" style="margin-top:14px">
+                  <button type="button" id="btnBlogAiGenerate">Generate draft</button>
+                  <button type="button" id="btnBlogAiClear" class="secondary">Clear inputs</button>
+                </div>
+                <div id="blogAiStatus" class="ok" aria-live="polite"></div>
+              </div>
+            </details>
+
             <!-- Basic -->
             <div class="blog-section">
               <p class="blog-section-title">Article</p>
@@ -493,7 +567,7 @@
             <details class="advanced" id="blogJsonWrap" open style="margin-top:18px">
               <summary>JSON view <span style="color:#666">— edit fields above to update this, or paste JSON here to update the fields. Last edit wins.</span></summary>
               <p style="margin:10px 0 0; font-size:0.78rem; color:#777; line-height:1.5">
-                Empty arrays (<code>toc</code>, <code>body</code>, <code>related</code>) and empty section blocks show a full schema reference with one example of every item type so you can see the shape. Those empty examples are stripped automatically on save and aren't stored.
+                Empty arrays (<code>toc</code>, <code>body</code>, <code>related</code>) and empty section blocks show a full schema reference with one example of every item type so you can see the shape. Use <code>midCta</code> and <code>finalCta</code> to override article CTAs, or set <code>enabled</code> to <code>false</code> to hide one. Empty examples are stripped automatically on save and aren't stored.
               </p>
               <label style="margin-top:12px">Blog JSON
                 <textarea id="blogJson" spellcheck="false" autocomplete="off" style="min-height:340px; white-space:pre; tab-size:2; -moz-tab-size:2;"></textarea>
@@ -545,6 +619,6 @@
       </div>
     </div>
 
-    <script src="/admin/admin.js?v=20260520b"></script>
+    <script src="/admin/admin.js?v=20260520d"></script>
   </body>
 </html>

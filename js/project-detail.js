@@ -22,10 +22,11 @@
     if (og) og.setAttribute("content", document.title);
   }
 
-  function statBlock(label, value) {
+  function statBlock(label, value, modifier) {
     if (!value) return "";
+    var className = "stat" + (modifier ? " " + modifier : "");
     return (
-      '<div class="stat">' +
+      '<div class="' + className + '">' +
       '<span class="stat-label">' + esc(label) + "</span>" +
       '<span class="stat-value">' + esc(value) + "</span>" +
       "</div>"
@@ -149,7 +150,6 @@
     if (desc && p.summary) desc.setAttribute("content", p.summary);
 
     var cover = p.coverImageUrl || "/images/image-placeholder.svg";
-    var tagline = buildTagline(p);
     var stats =
       statBlock("Client", p.client) +
       statBlock("Objective", p.objective) +
@@ -164,19 +164,17 @@
       '<a href="/projects" class="back-link">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>' +
       "All projects</a>" +
-      (tagline ? '<div class="tagline">' + tagline + "</div>" : "") +
+      '<div class="detail-hero-layout">' +
+      '<div class="detail-hero-copy">' +
       "<h1>" + esc(p.title || "Project") + "</h1>" +
       (p.summary ? '<p class="lead">' + esc(p.summary) + "</p>" : "") +
+      (stats ? '<div class="detail-stats">' + stats + "</div>" : "") +
+      "</div>" +
       '<div class="detail-cover" data-reveal>' +
       '<img loading="lazy" decoding="async" src="' + esc(cover) + '" alt="' + esc(p.title || "") + '" />' +
       "</div>" +
+      "</div>" +
       "</div></section>" +
-      (stats
-        ? '<section class="section" style="padding-top:0; padding-bottom:0;">' +
-            '<div class="container">' +
-            '<div class="detail-stats">' + stats + "</div>" +
-            "</div></section>"
-        : "") +
       (body
         ? "<section><div class=\"container\"><div class=\"case-body\" data-reveal>" + body + "</div></div></section>"
         : "") +

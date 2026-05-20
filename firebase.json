@@ -58,8 +58,20 @@
         "function": "bootstrapAdmin"
       },
       {
+        "source": "/api/generate-blog-post",
+        "function": "generateBlogPost"
+      },
+      {
+        "source": "/sitemap-blog.xml",
+        "function": "sitemap"
+      },
+      {
         "source": "/projects/**",
         "destination": "/project-detail.html"
+      },
+      {
+        "source": "/blog",
+        "function": "blogIndex"
       },
       {
         "source": "/blog/**",

@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const logger = require("firebase-functions/logger");
@@ -9,6 +10,10 @@ setGlobalOptions({ region: "europe-west2" });
 
 admin.initializeApp();
 const db = admin.firestore();
+
+const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-5.4";
+const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2";
+const OPENAI_IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE || "1536x864";
 
 const ALLOWED_ORIGINS = new Set([
   "https://code-and-canvas.web.app",
@@ -21,6 +26,52 @@ const SITE_ORIGIN = "https://code-and-canvas.web.app";
 const DEFAULT_OG_IMAGE = SITE_ORIGIN + "/images/meta-webstudio-x-webflow-template.png";
 
 let blogDetailShellCache = null;
+let blogIndexShellCache = null;
+let sitemapCache = null;
+let sitemapCacheAt = 0;
+const SITEMAP_CACHE_MS = 60 * 60 * 1000;
+
+const PUBLISHER_ORG = {
+  "@type": "Organization",
+  name: "Code & Canvas",
+  url: SITE_ORIGIN,
+  logo: {
+    "@type": "ImageObject",
+    url: SITE_ORIGIN + "/images/favicon.png",
+  },
+};
+
+/** Static site paths for sitemap (blog article URLs come from Firestore). */
+const SITEMAP_STATIC_PATHS = [
+  "",
+  "/about",
+  "/blog",
+  "/blog-category/branding",
+  "/blog-category/design",
+  "/blog-category/ui-ux",
+  "/contact",
+  "/projects",
+  "/projects/hoddle",
+  "/projects/shilaking",
+  "/projects/maal-monkeys",
+  "/service-categories/ai-automation",
+  "/service-categories/brand-design",
+  "/service-categories/business-development",
+  "/service-categories/data-optimisation",
+  "/service-categories/development",
+  "/service-categories/ui-ux-design",
+  "/services",
+  "/services/bespoke-it-solutions",
+  "/services/branding-strategy",
+  "/services/data-driven-optimisation",
+  "/services/platform-app-development",
+  "/services/search-optimisation",
+  "/services/technical-innovation-automation",
+  "/services/website-development",
+  "/team/john-carter",
+  "/team/lily-woods",
+  "/team/sophie-moore",
+];
 
 function getBlogDetailShell() {
   if (!blogDetailShellCache) {
@@ -30,6 +81,16 @@ function getBlogDetailShell() {
     );
   }
   return blogDetailShellCache;
+}
+
+function getBlogIndexShell() {
+  if (!blogIndexShellCache) {
+    blogIndexShellCache = fs.readFileSync(
+      path.join(__dirname, "blog-index-shell.html"),
+      "utf8",
+    );
+  }
+  return blogIndexShellCache;
 }
 
 function escHtml(value) {
@@ -82,6 +143,178 @@ function buildBlogMetaHtml(post, slug, origin) {
     '<meta name="twitter:description" content="' + escHtml(description) + '" />\n' +
     '<meta name="twitter:image" content="' + escHtml(image) + '" />'
   );
+}
+
+function toIsoDate(value) {
+  if (!value) return "";
+  if (typeof value === "object" && typeof value.toDate === "function") {
+    return value.toDate().toISOString();
+  }
+  if (value instanceof Date) return value.toISOString();
+  const d = new Date(value);
+  if (!isNaN(d.getTime())) return d.toISOString();
+  return "";
+}
+
+function sitemapLastmod(value) {
+  const iso = toIsoDate(value);
+  return iso ? iso.slice(0, 10) : "";
+}
+
+function buildBlogJsonLd(post, slug, origin) {
+  if (!post) return "";
+  const seo = post.seo || {};
+  const headline = stripHtml(seo.metaTitle || post.title || "Article");
+  const description = (seo.metaDescription || post.summary || "").trim().slice(0, 500);
+  const canonical = origin + "/blog/" + encodeURIComponent(slug || "");
+  const cover = post.coverImage || {};
+  const image = absoluteAssetUrl(cover.url, origin);
+  const datePublished = toIsoDate(post.publishedAt);
+  const dateModified = toIsoDate(post.updatedAt) || datePublished;
+  const author = post.author || {};
+  const authorNode = author.name
+    ? {
+        "@type": "Person",
+        name: author.name,
+        ...(author.linkedinUrl ? { url: author.linkedinUrl } : {}),
+      }
+    : PUBLISHER_ORG;
+
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline,
+    description,
+    image: [image],
+    url: canonical,
+    mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+    author: authorNode,
+    publisher: PUBLISHER_ORG,
+  };
+  if (datePublished) data.datePublished = datePublished;
+  if (dateModified) data.dateModified = dateModified;
+
+  return '<script type="application/ld+json">\n' + JSON.stringify(data) + "\n</script>";
+}
+
+function buildBlogIndexMetaHtml(featured, origin) {
+  const canonical = origin + "/blog";
+  let pageTitle = "Blog | Code & Canvas";
+  let description =
+    "Articles, field notes and resources from Code & Canvas — a London & Dubai digital agency.";
+  let ogTitle = "Blog | Code & Canvas";
+  let ogDescription = description;
+  let image = DEFAULT_OG_IMAGE;
+
+  if (featured) {
+    const seo = featured.seo || {};
+    const articleTitle = stripHtml(seo.metaTitle || featured.title || "");
+    const articleSummary = (seo.metaDescription || featured.summary || "").trim().slice(0, 300);
+    if (articleTitle) ogTitle = articleTitle;
+    if (articleSummary) {
+      description = articleSummary;
+      ogDescription = articleSummary;
+    }
+    const cover = featured.coverImage || {};
+    image = absoluteAssetUrl(cover.url, origin);
+    if (articleTitle) {
+      pageTitle = "Blog — Latest: " + articleTitle + " | Code & Canvas";
+    }
+  }
+
+  return (
+    "<title>" + escHtml(pageTitle) + "</title>\n" +
+    '<meta name="description" content="' + escHtml(description) + '" />\n' +
+    '<link rel="canonical" href="' + escHtml(canonical) + '" />\n' +
+    '<meta property="og:title" content="' + escHtml(ogTitle) + '" />\n' +
+    '<meta property="og:description" content="' + escHtml(ogDescription) + '" />\n' +
+    '<meta property="og:type" content="website" />\n' +
+    '<meta property="og:url" content="' + escHtml(canonical) + '" />\n' +
+    '<meta property="og:image" content="' + escHtml(image) + '" />\n' +
+    '<meta name="twitter:card" content="summary_large_image" />\n' +
+    '<meta name="twitter:title" content="' + escHtml(ogTitle) + '" />\n' +
+    '<meta name="twitter:description" content="' + escHtml(ogDescription) + '" />\n' +
+    '<meta name="twitter:image" content="' + escHtml(image) + '" />'
+  );
+}
+
+function buildBlogIndexJsonLd(recentPosts, origin) {
+  const blogPost = (recentPosts || [])
+    .filter((p) => p && p.slug)
+    .map((p) => {
+      const entry = {
+        "@type": "BlogPosting",
+        headline: stripHtml(p.title || ""),
+        url: origin + "/blog/" + encodeURIComponent(p.slug),
+      };
+      const published = toIsoDate(p.publishedAt);
+      if (published) entry.datePublished = published;
+      return entry;
+    });
+
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: "Code & Canvas Blog",
+    url: origin + "/blog",
+    description:
+      "Articles, field notes and resources from Code & Canvas — brand, product, engineering, and digital experience.",
+    publisher: PUBLISHER_ORG,
+    blogPost,
+  };
+
+  return '<script type="application/ld+json">\n' + JSON.stringify(data) + "\n</script>";
+}
+
+function buildStaticSitemapXml(staticPaths, origin) {
+  const entries = [];
+  const seen = new Set();
+
+  for (const p of staticPaths) {
+    const loc = p === "" ? origin + "/" : origin + p;
+    const key = loc.replace(/\/$/, "") || origin;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    entries.push({
+      loc,
+      lastmod: "",
+      priority: p === "" ? "1.0" : "0.8",
+    });
+  }
+
+  return buildUrlsetXml(entries);
+}
+
+function buildBlogSitemapXml(blogPosts, origin) {
+  const entries = [];
+  const seen = new Set();
+
+  for (const post of blogPosts || []) {
+    const slug = post.slug;
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    entries.push({
+      loc: origin + "/blog/" + encodeURIComponent(slug),
+      lastmod: sitemapLastmod(post.updatedAt || post.publishedAt),
+      priority: "0.7",
+    });
+  }
+
+  return buildUrlsetXml(entries);
+}
+
+function buildUrlsetXml(entries) {
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+  for (const e of entries) {
+    xml += "  <url>";
+    xml += "<loc>" + escHtml(e.loc) + "</loc>";
+    if (e.lastmod) xml += "<lastmod>" + escHtml(e.lastmod) + "</lastmod>";
+    if (e.priority) xml += "<priority>" + escHtml(e.priority) + "</priority>";
+    xml += "</url>\n";
+  }
+  xml += "</urlset>";
+  return xml;
 }
 
 function corsHeaders(req) {
@@ -993,12 +1226,86 @@ exports.blogArticle = onRequest(async (req, res) => {
   }
 
   const meta = buildBlogMetaHtml(post, slug, origin);
-  const html = getBlogDetailShell().replace("<!--BLOG_META-->", meta);
+  const jsonLd = buildBlogJsonLd(post, slug, origin);
+  const html = getBlogDetailShell()
+    .replace("<!--BLOG_META-->", meta)
+    .replace("<!--BLOG_JSON_LD-->", jsonLd);
   res
     .set("Content-Type", "text/html; charset=utf-8")
     .set("Cache-Control", "public, max-age=300, s-maxage=600")
     .status(post ? 200 : 404)
     .send(html);
+});
+
+exports.blogIndex = onRequest(async (req, res) => {
+  const origin = SITE_ORIGIN;
+  let featured = null;
+  const recent = [];
+
+  try {
+    const snap = await db
+      .collection("blog_posts")
+      .where("published", "==", true)
+      .orderBy("publishedAt", "desc")
+      .limit(12)
+      .get();
+    snap.forEach((doc, i) => {
+      const data = doc.data();
+      data.slug = data.slug || doc.id;
+      if (i === 0) featured = data;
+      recent.push(data);
+    });
+  } catch (error) {
+    logger.error("blogIndex lookup failed", error);
+  }
+
+  const meta = buildBlogIndexMetaHtml(featured, origin);
+  const jsonLd = buildBlogIndexJsonLd(recent, origin);
+  const html = getBlogIndexShell()
+    .replace("<!--BLOG_INDEX_META-->", meta)
+    .replace("<!--BLOG_INDEX_JSON_LD-->", jsonLd);
+
+  res
+    .set("Content-Type", "text/html; charset=utf-8")
+    .set("Cache-Control", "public, max-age=300, s-maxage=600")
+    .status(200)
+    .send(html);
+});
+
+exports.sitemap = onRequest(async (req, res) => {
+  const now = Date.now();
+  if (sitemapCache && now - sitemapCacheAt < SITEMAP_CACHE_MS) {
+    res
+      .set("Content-Type", "application/xml; charset=utf-8")
+      .set("Cache-Control", "public, max-age=3600, s-maxage=3600")
+      .send(sitemapCache);
+    return;
+  }
+
+  let blogPosts = [];
+  try {
+    const snap = await db
+      .collection("blog_posts")
+      .where("published", "==", true)
+      .orderBy("publishedAt", "desc")
+      .get();
+    snap.forEach((doc) => {
+      const data = doc.data();
+      data.slug = data.slug || doc.id;
+      blogPosts.push(data);
+    });
+  } catch (error) {
+    logger.error("sitemap blog_posts lookup failed", error);
+  }
+
+  const xml = buildBlogSitemapXml(blogPosts, SITE_ORIGIN);
+  sitemapCache = xml;
+  sitemapCacheAt = now;
+
+  res
+    .set("Content-Type", "application/xml; charset=utf-8")
+    .set("Cache-Control", "public, max-age=3600, s-maxage=3600")
+    .send(xml);
 });
 
 exports.newsletter = onRequest(async (req, res) => {
@@ -1045,4 +1352,648 @@ exports.newsletter = onRequest(async (req, res) => {
     res.set(headers).status(500).json({ ok: false, error: "server_error" });
   }
 });
+
+// ═══════════════════════════════════
+//  AI BLOG POST GENERATION
+// ═══════════════════════════════════
+//
+// Secured endpoint that drafts a structured blog post (matching the
+// `blog_posts` schema used by the admin panel and public site), generates a
+// cover image, uploads the image to Firebase Storage and returns the full
+// payload to the admin UI for review before saving/publishing.
+
+const BLOG_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ALLOWED_BLOG_TONES = new Set([
+  "studio",
+  "expert",
+  "friendly",
+  "conversational",
+  "practical",
+  "thought-leader",
+]);
+const ALLOWED_IMAGE_STYLES = new Set([
+  "editorial",
+  "abstract",
+  "minimal",
+  "illustrative",
+  "photography",
+  "studio",
+]);
+const ALLOWED_BLOCK_TYPES = new Set([
+  "lead",
+  "paragraph",
+  "subheading",
+  "list",
+  "quote",
+  "callout",
+  "image",
+]);
+
+function slugifyBlog(value) {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+}
+
+async function verifyAdminRequest(req) {
+  const authHeader = req.headers.authorization || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!bearer) return { ok: false, status: 401, error: "missing_token" };
+  let decoded;
+  try {
+    decoded = await admin.auth().verifyIdToken(bearer);
+  } catch (err) {
+    if (err.code === "auth/id-token-expired") {
+      return { ok: false, status: 401, error: "token_expired" };
+    }
+    return { ok: false, status: 401, error: "invalid_token" };
+  }
+  const adminDoc = await db.collection("admins").doc(decoded.uid).get();
+  if (!adminDoc.exists) return { ok: false, status: 403, error: "not_admin" };
+  return { ok: true, uid: decoded.uid };
+}
+
+async function loadBlogPostsForReview() {
+  const snap = await db.collection("blog_posts").get();
+  const posts = [];
+  snap.forEach((doc) => {
+    const d = doc.data() || {};
+    posts.push({
+      slug: d.slug || doc.id,
+      title: d.title || "",
+      summary: d.summary || "",
+      category: d.category || "",
+      tags: Array.isArray(d.tags) ? d.tags : [],
+      published: !!d.published,
+      publishedAt: d.publishedAt || "",
+    });
+  });
+  posts.sort((a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)));
+  return posts;
+}
+
+async function ensureUniqueBlogSlug(initialSlug, fallbackTitle) {
+  let base = slugifyBlog(initialSlug) || slugifyBlog(fallbackTitle) || "post";
+  if (!BLOG_SLUG_PATTERN.test(base)) base = slugifyBlog(base) || "post";
+  let candidate = base;
+  for (let i = 0; i < 25; i += 1) {
+    const exists = await db.collection("blog_posts").doc(candidate).get();
+    if (!exists.exists) return candidate;
+    candidate = `${base}-${i + 2}`;
+  }
+  return `${base}-${Date.now()}`;
+}
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function normalizeBlogBlockForFunction(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const type = String(raw.type || "").toLowerCase().trim();
+  if (!ALLOWED_BLOCK_TYPES.has(type)) return null;
+  switch (type) {
+    case "lead":
+    case "paragraph":
+    case "subheading": {
+      const text = String(raw.text || "").trim();
+      if (!text) return null;
+      return { type, text };
+    }
+    case "list": {
+      const items = Array.isArray(raw.items)
+        ? raw.items.map((x) => String(x || "").trim()).filter(Boolean)
+        : [];
+      if (!items.length) return null;
+      return { type, style: raw.style === "number" ? "number" : "bullet", items };
+    }
+    case "quote": {
+      const text = String(raw.text || "").trim();
+      if (!text) return null;
+      return { type, text, cite: String(raw.cite || "").trim() };
+    }
+    case "callout": {
+      const text = String(raw.text || "").trim();
+      const tag = String(raw.tag || "").trim();
+      if (!text && !tag) return null;
+      return { type, text, tag };
+    }
+    case "image": {
+      const url = String(raw.url || "").trim();
+      const alt = String(raw.alt || "").trim();
+      const caption = String(raw.caption || "").trim();
+      if (!url && !alt && !caption) return null;
+      return { type, url, alt, caption };
+    }
+    default:
+      return null;
+  }
+}
+
+function normalizeBlogCtaForFunction(raw) {
+  if (raw === false) {
+    return {
+      enabled: false,
+      eyebrow: "",
+      title: "",
+      text: "",
+      primaryLabel: "",
+      primaryUrl: "",
+      secondaryLabel: "",
+      secondaryUrl: "",
+    };
+  }
+  const c = raw && typeof raw === "object" ? raw : {};
+  return {
+    enabled: c.enabled === false ? false : true,
+    eyebrow: String(c.eyebrow || "").slice(0, 80),
+    title: String(c.title || "").slice(0, 140),
+    text: String(c.text || "").slice(0, 400),
+    primaryLabel: String(c.primaryLabel || "").slice(0, 60),
+    primaryUrl: String(c.primaryUrl || "").slice(0, 240),
+    secondaryLabel: String(c.secondaryLabel || "").slice(0, 60),
+    secondaryUrl: String(c.secondaryUrl || "").slice(0, 240),
+  };
+}
+
+function normalizeBlogPayloadFromAi(raw, ctx) {
+  if (!raw || typeof raw !== "object") throw new Error("ai_output_not_object");
+  const title = String(raw.title || "").trim().slice(0, 180);
+  if (!title) throw new Error("ai_output_missing_title");
+  const summary = String(raw.summary || "").trim().slice(0, 400);
+  const category = String(raw.category || ctx.category || "").trim().slice(0, 60);
+  const tags = Array.isArray(raw.tags)
+    ? raw.tags
+        .map((t) => String(t || "").trim())
+        .filter((t) => t.length > 0)
+        .slice(0, 10)
+    : [];
+  const readingTimeMinutes = Math.max(0, Math.min(60, Number(raw.readingTimeMinutes) || 0));
+
+  const authorRaw = raw.author && typeof raw.author === "object" ? raw.author : {};
+  const author = {
+    name: String(authorRaw.name || ctx.defaultAuthor.name || "").trim().slice(0, 120),
+    role: String(authorRaw.role || ctx.defaultAuthor.role || "").trim().slice(0, 120),
+    avatarUrl: String(authorRaw.avatarUrl || ctx.defaultAuthor.avatarUrl || "").trim(),
+    bio: String(authorRaw.bio || ctx.defaultAuthor.bio || "").trim().slice(0, 400),
+    linkedinUrl: String(authorRaw.linkedinUrl || ctx.defaultAuthor.linkedinUrl || "").trim(),
+    moreArticlesUrl: String(authorRaw.moreArticlesUrl || ctx.defaultAuthor.moreArticlesUrl || "").trim(),
+  };
+
+  const coverRaw = raw.coverImage && typeof raw.coverImage === "object" ? raw.coverImage : {};
+  const coverImage = {
+    url: "",
+    alt: String(coverRaw.alt || "").trim().slice(0, 240),
+  };
+
+  const bodyRaw = Array.isArray(raw.body) ? raw.body : [];
+  const body = [];
+  bodyRaw.forEach((sectionRaw, index) => {
+    if (!sectionRaw || typeof sectionRaw !== "object") return;
+    const heading = String(sectionRaw.heading || "").trim().slice(0, 200);
+    if (!heading) return;
+    let id = slugifyBlog(sectionRaw.id || heading) || `section-${index + 1}`;
+    if (!BLOG_SLUG_PATTERN.test(id)) id = `section-${index + 1}`;
+    const numRaw = sectionRaw.number;
+    const numberStr =
+      numRaw == null || numRaw === ""
+        ? String(index + 1).padStart(2, "0")
+        : String(numRaw).trim().slice(0, 4);
+    const blocks = Array.isArray(sectionRaw.blocks)
+      ? sectionRaw.blocks.map(normalizeBlogBlockForFunction).filter(Boolean)
+      : [];
+    if (!blocks.length) return;
+    body.push({ type: "section", id, number: numberStr, heading, blocks });
+  });
+  if (!body.length) throw new Error("ai_output_missing_body");
+
+  const tocRaw = Array.isArray(raw.toc) ? raw.toc : [];
+  let toc = tocRaw
+    .map((t) => ({
+      id: slugifyBlog(t && t.id) || "",
+      label: String((t && t.label) || "").trim().slice(0, 160),
+    }))
+    .filter((t) => t.id && t.label);
+  if (!toc.length) {
+    toc = body.map((s) => ({ id: s.id, label: s.heading }));
+  }
+
+  const relatedRaw = Array.isArray(raw.related) ? raw.related : [];
+  const knownSlugs = new Set(ctx.existingSlugs || []);
+  const related = relatedRaw
+    .map((r) => {
+      if (!r || typeof r !== "object") return null;
+      const slug = slugifyBlog(r.slug);
+      if (!slug || !knownSlugs.has(slug)) return null;
+      return {
+        slug,
+        title: String(r.title || "").trim().slice(0, 180),
+        summary: String(r.summary || "").trim().slice(0, 300),
+        category: String(r.category || "").trim().slice(0, 60),
+        readingTimeMinutes: Math.max(0, Math.min(60, Number(r.readingTimeMinutes) || 0)),
+        publishedAt: String(r.publishedAt || "").slice(0, 10),
+        coverImage: { url: "", alt: "" },
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const seoRaw = raw.seo && typeof raw.seo === "object" ? raw.seo : {};
+  const seo = {
+    metaTitle: String(seoRaw.metaTitle || "").trim().slice(0, 70),
+    metaDescription: String(seoRaw.metaDescription || "").trim().slice(0, 200),
+  };
+
+  const midCta = normalizeBlogCtaForFunction(raw.midCta);
+  const finalCta = normalizeBlogCtaForFunction(raw.finalCta);
+
+  const slug = ctx.slug;
+  const publishedAtRaw = String(raw.publishedAt || "").trim();
+  const publishedAt = /^\d{4}-\d{2}-\d{2}$/.test(publishedAtRaw)
+    ? publishedAtRaw
+    : todayIsoDate();
+
+  return {
+    slug,
+    title,
+    summary,
+    category,
+    tags,
+    publishedAt,
+    readingTimeMinutes,
+    authorId: "",
+    author,
+    coverImage,
+    toc,
+    body,
+    midCta,
+    finalCta,
+    related,
+    seo,
+    coverImagePrompt: String(raw.coverImagePrompt || "").trim().slice(0, 600),
+  };
+}
+
+// Extracts the assistant's text content from a Responses API payload.
+// Prefers the SDK-style `output_text` convenience field; falls back to walking
+// the `output` array for the first `message` item with `output_text` content.
+function extractResponsesApiText(data) {
+  if (!data || typeof data !== "object") return "";
+  if (typeof data.output_text === "string" && data.output_text.trim()) {
+    return data.output_text;
+  }
+  if (!Array.isArray(data.output)) return "";
+  for (const item of data.output) {
+    if (!item || item.type !== "message") continue;
+    if (!Array.isArray(item.content)) continue;
+    for (const part of item.content) {
+      if (part && part.type === "output_text" && typeof part.text === "string") {
+        return part.text;
+      }
+      if (part && part.type === "refusal" && typeof part.refusal === "string") {
+        const err = new Error("openai_refusal");
+        err.detail = part.refusal.slice(0, 500);
+        throw err;
+      }
+    }
+  }
+  return "";
+}
+
+async function callOpenAiResponsesJson({ apiKey, instructions, input, model }) {
+  const resp = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: model || OPENAI_TEXT_MODEL,
+      instructions,
+      input,
+      text: {
+        format: { type: "json_object" },
+        verbosity: "medium",
+      },
+      reasoning: { effort: "low" },
+      store: false,
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    const err = new Error("openai_responses_failed");
+    err.status = resp.status;
+    err.detail = errText.slice(0, 500);
+    throw err;
+  }
+  const data = await resp.json();
+  const content = extractResponsesApiText(data);
+  if (!content) throw new Error("openai_responses_empty");
+  try {
+    return JSON.parse(content);
+  } catch (err) {
+    const e = new Error("openai_responses_invalid_json");
+    e.detail = String(content).slice(0, 500);
+    throw e;
+  }
+}
+
+async function callOpenAiImageBase64({ apiKey, prompt, size }) {
+  const resp = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_IMAGE_MODEL,
+      prompt,
+      size: size || OPENAI_IMAGE_SIZE,
+      n: 1,
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    const err = new Error("openai_image_failed");
+    err.status = resp.status;
+    err.detail = errText.slice(0, 500);
+    throw err;
+  }
+  const data = await resp.json();
+  const b64 = data && data.data && data.data[0] && data.data[0].b64_json;
+  if (!b64) throw new Error("openai_image_empty_response");
+  return Buffer.from(b64, "base64");
+}
+
+async function uploadCoverImageToStorage(slug, buffer) {
+  const bucket = admin.storage().bucket();
+  const filePath = `blog/${slug}/cover-${Date.now()}-openai.png`;
+  const downloadToken = crypto.randomUUID();
+  await bucket.file(filePath).save(buffer, {
+    contentType: "image/png",
+    resumable: false,
+    metadata: {
+      cacheControl: "public, max-age=31536000",
+      metadata: { firebaseStorageDownloadTokens: downloadToken },
+    },
+  });
+  const url =
+    `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket.name)}` +
+    `/o/${encodeURIComponent(filePath)}?alt=media&token=${downloadToken}`;
+  return { url, path: filePath };
+}
+
+function buildBlogGenerationSystemPrompt() {
+  return [
+    "You are a senior editor and writer at Code & Canvas, a London and Dubai digital studio that ships brand,",
+    "product, engineering and growth work. Write in clear British English, avoid hype, use confident but humble",
+    "studio voice, prefer short paragraphs and concrete examples.",
+    "",
+    "You MUST respond with a single JSON object that matches this shape exactly (no commentary, no markdown):",
+    "{",
+    '  "slug": "kebab-case-suggested-slug",',
+    '  "title": "Article title",',
+    '  "summary": "1-2 sentence deck shown under the headline and on cards",',
+    '  "category": "Branding|Design|Engineering|Process|Strategy|Growth|...",',
+    '  "tags": ["Tag1", "Tag2"],',
+    '  "publishedAt": "YYYY-MM-DD",',
+    '  "readingTimeMinutes": 5,',
+    '  "author": { "name": "", "role": "", "avatarUrl": "", "bio": "", "linkedinUrl": "", "moreArticlesUrl": "" },',
+    '  "coverImage": { "alt": "Accessible description of the cover image" },',
+    '  "coverImagePrompt": "Detailed visual prompt to generate a 16:9 editorial cover image",',
+    '  "toc": [ { "id": "section-id", "label": "Section heading" } ],',
+    '  "body": [',
+    "    {",
+    '      "id": "section-id",',
+    '      "number": "01",',
+    '      "heading": "Section heading",',
+    '      "blocks": [',
+    '        { "type": "lead", "text": "..." },',
+    '        { "type": "paragraph", "text": "..." },',
+    '        { "type": "subheading", "text": "..." },',
+    '        { "type": "list", "style": "bullet|number", "items": ["...", "..."] },',
+    '        { "type": "quote", "text": "...", "cite": "..." },',
+    '        { "type": "callout", "tag": "Studio practice", "text": "..." }',
+    "      ]",
+    "    }",
+    "  ],",
+    '  "midCta": { "enabled": true, "eyebrow": "...", "title": "...", "text": "...", "primaryLabel": "...", "primaryUrl": "/contact", "secondaryLabel": "", "secondaryUrl": "" },',
+    '  "finalCta": { "enabled": true, "eyebrow": "...", "title": "...", "text": "...", "primaryLabel": "...", "primaryUrl": "/contact", "secondaryLabel": "", "secondaryUrl": "" },',
+    '  "related": [ { "slug": "existing-post-slug", "title": "", "summary": "", "category": "", "readingTimeMinutes": 0, "publishedAt": "" } ],',
+    '  "seo": { "metaTitle": "<=60 chars", "metaDescription": "<=160 chars" }',
+    "}",
+    "",
+    "Rules:",
+    "- The slug must be lowercase, hyphen-separated, and must NOT match any existing slug provided to you.",
+    "- The body must contain between 3 and 6 sections. Each section needs a unique slugified id and at least 2 blocks.",
+    "- Start the first section with a `lead` block, then paragraphs. Use lists, callouts and quotes where they add value.",
+    "- Do not invent statistics or quote real people; attribute any quotes to `Code & Canvas` or remove the cite.",
+    "- The `related` array must only reference slugs from the provided existing posts; otherwise leave it empty.",
+    "- Keep the cover image prompt concrete, editorial, and brand-appropriate (no text or logos in the image).",
+  ].join("\n");
+}
+
+function buildBlogGenerationUserPrompt({ brief, existingPosts }) {
+  const briefLines = [
+    `Topic: ${brief.topic}`,
+    brief.audience ? `Audience: ${brief.audience}` : "",
+    brief.keyword ? `Target keyword / SEO focus: ${brief.keyword}` : "",
+    brief.category ? `Suggested category: ${brief.category}` : "",
+    brief.tone ? `Tone preference: ${brief.tone}` : "",
+    brief.sectionsCount ? `Target number of sections: ${brief.sectionsCount}` : "",
+    brief.imageStyle ? `Cover image visual style preference: ${brief.imageStyle}` : "",
+    brief.notes ? `Additional notes: ${brief.notes}` : "",
+  ].filter(Boolean);
+
+  const recent = existingPosts.slice(0, 30).map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    summary: p.summary,
+    category: p.category,
+    tags: p.tags,
+    publishedAt: p.publishedAt,
+    published: p.published,
+  }));
+
+  return [
+    "Write the next blog post for the Code & Canvas studio blog based on this brief:",
+    "",
+    briefLines.join("\n"),
+    "",
+    "Existing posts (avoid repeating these angles and only use these slugs in `related`):",
+    JSON.stringify(recent, null, 2),
+    "",
+    "Return ONLY the JSON object described in the system instructions.",
+  ].join("\n");
+}
+
+function buildCoverImagePrompt(payload, brief) {
+  const styleHint = brief.imageStyle
+    ? `${brief.imageStyle} style`
+    : "modern editorial style";
+  const base = payload.coverImagePrompt
+    || `An evocative hero illustration for an article titled "${payload.title}". ${payload.summary || ""}`;
+  return [
+    base,
+    `Visual direction: ${styleHint}, sophisticated colour palette, generous negative space,`,
+    "no text, no typography, no logos, no watermarks, 16:9 framing.",
+    "Suitable as a website hero banner for a design and engineering studio.",
+  ].join(" ");
+}
+
+exports.generateBlogPost = onRequest(
+  { timeoutSeconds: 540, memory: "1GiB" },
+  async (req, res) => {
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.status(405).json({ ok: false, error: "method_not_allowed" });
+      return;
+    }
+
+    const ip = req.ip || req.headers["x-forwarded-for"] || "unknown";
+    if (isRateLimited(String(ip), "generateBlogPost", 6)) {
+      res.status(429).json({ ok: false, error: "rate_limited" });
+      return;
+    }
+
+    const auth = await verifyAdminRequest(req).catch((err) => {
+      logger.error("generateBlogPost auth error", err);
+      return { ok: false, status: 500, error: "server_error" };
+    });
+    if (!auth.ok) {
+      res.status(auth.status).json({ ok: false, error: auth.error });
+      return;
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY || "";
+    if (!apiKey) {
+      res.status(500).json({ ok: false, error: "openai_key_missing" });
+      return;
+    }
+
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+    const brief = {
+      topic: normalizeText(body.topic, 240),
+      audience: normalizeText(body.audience, 240),
+      keyword: normalizeText(body.keyword, 120),
+      notes: normalizeText(body.notes, 2000),
+      category: normalizeText(body.category, 60),
+      tone: ALLOWED_BLOG_TONES.has(String(body.tone || "").toLowerCase())
+        ? String(body.tone).toLowerCase()
+        : "",
+      sectionsCount: (() => {
+        const n = Number(body.sectionsCount);
+        if (!Number.isFinite(n)) return 0;
+        return Math.max(2, Math.min(8, Math.round(n)));
+      })(),
+      imageStyle: ALLOWED_IMAGE_STYLES.has(String(body.imageStyle || "").toLowerCase())
+        ? String(body.imageStyle).toLowerCase()
+        : "",
+      generateImage: body.generateImage === false ? false : true,
+    };
+    if (!brief.topic) {
+      res.status(400).json({ ok: false, error: "missing_topic" });
+      return;
+    }
+
+    let existingPosts;
+    try {
+      existingPosts = await loadBlogPostsForReview();
+    } catch (err) {
+      logger.error("generateBlogPost: failed to load existing posts", err);
+      res.status(500).json({ ok: false, error: "existing_posts_failed" });
+      return;
+    }
+
+    const defaultAuthor = STUDIO_AUTHOR;
+    const existingSlugs = existingPosts.map((p) => p.slug);
+
+    let aiPayload;
+    try {
+      const instructions = buildBlogGenerationSystemPrompt();
+      const input = buildBlogGenerationUserPrompt({ brief, existingPosts });
+      aiPayload = await callOpenAiResponsesJson({ apiKey, instructions, input });
+    } catch (err) {
+      logger.error("generateBlogPost: openai responses call failed", {
+        message: err.message,
+        status: err.status,
+        detail: err.detail,
+      });
+      res.status(502).json({
+        ok: false,
+        error: "openai_chat_failed",
+        detail: err.message || "",
+      });
+      return;
+    }
+
+    let slug;
+    try {
+      slug = await ensureUniqueBlogSlug(aiPayload.slug, aiPayload.title);
+    } catch (err) {
+      logger.error("generateBlogPost: slug check failed", err);
+      res.status(500).json({ ok: false, error: "slug_check_failed" });
+      return;
+    }
+
+    let normalized;
+    try {
+      normalized = normalizeBlogPayloadFromAi(aiPayload, {
+        slug,
+        category: brief.category,
+        defaultAuthor,
+        existingSlugs,
+      });
+    } catch (err) {
+      logger.error("generateBlogPost: normalize failed", {
+        message: err.message,
+        aiPayload,
+      });
+      res.status(502).json({ ok: false, error: "ai_output_invalid", detail: err.message });
+      return;
+    }
+
+    let coverInfo = null;
+    if (brief.generateImage) {
+      try {
+        const imagePrompt = buildCoverImagePrompt(normalized, brief);
+        const buffer = await callOpenAiImageBase64({
+          apiKey,
+          prompt: imagePrompt,
+          size: OPENAI_IMAGE_SIZE,
+        });
+        coverInfo = await uploadCoverImageToStorage(slug, buffer);
+        normalized.coverImage.url = coverInfo.url;
+        if (!normalized.coverImage.alt) {
+          normalized.coverImage.alt = `Cover image for ${normalized.title}`;
+        }
+      } catch (err) {
+        logger.error("generateBlogPost: image generation/upload failed", {
+          message: err.message,
+          status: err.status,
+          detail: err.detail,
+        });
+        // Continue without a cover image so the admin can still review the draft.
+        normalized.coverImage.url = "";
+      }
+    }
+
+    delete normalized.coverImagePrompt;
+
+    res.status(200).json({
+      ok: true,
+      slug,
+      payload: normalized,
+      cover: coverInfo,
+      existingPostsConsidered: existingPosts.length,
+      imageGenerated: !!(coverInfo && coverInfo.url),
+    });
+  },
+);
 

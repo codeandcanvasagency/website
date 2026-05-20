@@ -511,6 +511,7 @@
     $("bodyHtml").value = data.bodyHtml || "";
     $("galleryUrls").value = (data.galleryUrls || []).join("\n");
     var cf = $("coverFile"); if (cf) cf.value = "";
+    var gf = $("galleryFiles"); if (gf) gf.value = "";
   }
 
   function readForm(published) {
@@ -744,6 +745,33 @@
     $("uploadStatus").textContent = "Uploading\u2026";
     try { var ref = storage.ref(path); await ref.put(file); $("coverImageUrl").value = await ref.getDownloadURL(); $("uploadStatus").textContent = "Uploaded."; }
     catch (e) { $("uploadStatus").textContent = "Upload failed."; }
+  }
+
+  async function uploadGalleryImages(ev) {
+    var files = ev.target.files ? Array.prototype.slice.call(ev.target.files) : [];
+    if (!files.length || !auth.currentUser) return;
+    var slug = slugify($("slug").value) || "draft-" + auth.currentUser.uid;
+    var status = $("galleryUploadStatus");
+    var uploaded = [];
+    if (status) { status.className = "ok"; status.textContent = "Uploading " + files.length + " image" + (files.length === 1 ? "" : "s") + "\u2026"; }
+    try {
+      for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var path = "portfolio/" + slug + "/gallery-" + Date.now() + "-" + i + "-" + file.name.replace(/\s/g, "_");
+        var ref = storage.ref(path);
+        await ref.put(file);
+        uploaded.push(await ref.getDownloadURL());
+        if (status) status.textContent = "Uploaded " + uploaded.length + " of " + files.length + "\u2026";
+      }
+      var existing = $("galleryUrls").value.split(/\n/).map(function (u) { return u.trim(); }).filter(Boolean);
+      $("galleryUrls").value = existing.concat(uploaded).join("\n");
+      if (status) status.textContent = "Uploaded " + uploaded.length + " gallery image" + (uploaded.length === 1 ? "." : "s.");
+      if (ev.target) ev.target.value = "";
+      onProjectFieldInput();
+    } catch (e) {
+      console.error("gallery upload error", e);
+      if (status) { status.className = "err"; status.textContent = "Upload failed: " + (e.message || e.code || "unknown error"); }
+    }
   }
 
   async function saveProject(published) {
@@ -1167,6 +1195,8 @@
     coverImage: { url: "", alt: "" },
     toc: [],
     body: [],
+    midCta: { enabled: true, eyebrow: "", title: "", text: "", primaryLabel: "", primaryUrl: "", secondaryLabel: "", secondaryUrl: "" },
+    finalCta: { enabled: true, eyebrow: "", title: "", text: "", primaryLabel: "", primaryUrl: "", secondaryLabel: "", secondaryUrl: "" },
     related: [],
     seo: { metaTitle: "", metaDescription: "" },
   };
@@ -1182,7 +1212,7 @@
   ];
 
   var blogModalDocPublished = false;
-  var blogState = { toc: [], body: [], related: [] };
+  var blogState = { toc: [], body: [], related: [], midCta: null, finalCta: null };
   var blogJsonSyncing = false;
   var blogJsonSyncTimer = null;
   var blogJsonParseTimer = null;
@@ -1228,6 +1258,33 @@
       readingTimeMinutes: 0,
       publishedAt: "",
       coverImage: { url: "", alt: "" },
+    };
+  }
+  function makeEmptyBlogCta() {
+    return {
+      enabled: true,
+      eyebrow: "",
+      title: "",
+      text: "",
+      primaryLabel: "",
+      primaryUrl: "",
+      secondaryLabel: "",
+      secondaryUrl: "",
+    };
+  }
+
+  function normalizeBlogCta(c) {
+    if (c === false) return Object.assign(makeEmptyBlogCta(), { enabled: false });
+    c = c && typeof c === "object" ? c : {};
+    return {
+      enabled: c.enabled === false ? false : true,
+      eyebrow: String(c.eyebrow || c.label || ""),
+      title: String(c.title || c.heading || ""),
+      text: String(c.text || c.body || c.description || ""),
+      primaryLabel: String(c.primaryLabel || c.buttonLabel || c.ctaLabel || ""),
+      primaryUrl: String(c.primaryUrl || c.buttonUrl || c.ctaUrl || c.url || ""),
+      secondaryLabel: String(c.secondaryLabel || ""),
+      secondaryUrl: String(c.secondaryUrl || ""),
     };
   }
 
@@ -1610,6 +1667,8 @@
           blocks: (s.blocks || []).map(normalizeBlogBlock),
         };
       }),
+      midCta: normalizeBlogCta(blogState.midCta),
+      finalCta: normalizeBlogCta(blogState.finalCta),
       related: blogState.related.map(function (r) {
         var ci = r.coverImage || {};
         return {
@@ -1677,6 +1736,8 @@
           };
         })
         .filter(function (s) { return !isEmptyBlogSection(s); });
+      blogState.midCta = normalizeBlogCta(data.midCta);
+      blogState.finalCta = normalizeBlogCta(data.finalCta);
       blogState.related = (Array.isArray(data.related) ? data.related : [])
         .map(function (r) {
           r = r || {};
@@ -1899,6 +1960,8 @@
     blogLastEditedSide = "form";
     var cf = $("blogCoverFile"); if (cf) cf.value = "";
     var af = $("blogAuthorAvatarFile"); if (af) af.value = "";
+    showBlogAiGenerator(true);
+    clearBlogAiInputs();
     openModal("blogModal");
     $("blogSaveStatus").textContent = "";
     setTimeout(function () { $("blogTitle").focus(); }, 0);
@@ -1920,6 +1983,7 @@
     blogLastEditedSide = "form";
     var cf = $("blogCoverFile"); if (cf) cf.value = "";
     var af = $("blogAuthorAvatarFile"); if (af) af.value = "";
+    showBlogAiGenerator(false);
     openModal("blogModal");
     $("blogSaveStatus").textContent = "";
     setTimeout(function () { $("blogTitle").focus(); }, 0);
@@ -2102,6 +2166,138 @@
     }
   }
 
+  // ─── AI blog generator ─────────────────────────────
+  function showBlogAiGenerator(visible) {
+    var el = $("blogAiGenerator"); if (!el) return;
+    el.hidden = !visible;
+    if (visible) el.open = true;
+  }
+
+  function setBlogAiStatus(kind, msg) {
+    var el = $("blogAiStatus"); if (!el) return;
+    el.textContent = msg || "";
+    el.className = kind === "err" ? "err" : "ok";
+  }
+
+  function clearBlogAiInputs() {
+    ["blogAiTopic", "blogAiAudience", "blogAiKeyword", "blogAiCategory", "blogAiNotes"].forEach(function (id) {
+      var el = $(id); if (el) el.value = "";
+    });
+    var tone = $("blogAiTone"); if (tone) tone.value = "studio";
+    var img = $("blogAiImageStyle"); if (img) img.value = "editorial";
+    var sec = $("blogAiSections"); if (sec) sec.value = "4";
+    var gen = $("blogAiGenerateImage"); if (gen) gen.checked = true;
+    setBlogAiStatus("ok", "");
+  }
+
+  function describeBlogAiError(code, detail) {
+    switch (code) {
+      case "missing_token":
+      case "token_expired":
+      case "invalid_token":
+        return "Sign in again to use the AI generator.";
+      case "not_admin":
+        return "Your account is not in the admins list.";
+      case "rate_limited":
+        return "Too many generations recently. Wait a minute and try again.";
+      case "missing_topic":
+        return "Add a topic before generating.";
+      case "openai_key_missing":
+        return "OpenAI key isn\u2019t configured on the server. Set the OPENAI_API_KEY secret.";
+      case "openai_chat_failed":
+        return "OpenAI didn\u2019t respond. Try again in a moment." + (detail ? " (" + detail + ")" : "");
+      case "ai_output_invalid":
+        return "The AI response wasn\u2019t valid for our schema." + (detail ? " (" + detail + ")" : "");
+      case "existing_posts_failed":
+        return "Couldn\u2019t read existing posts. Try again.";
+      case "slug_check_failed":
+        return "Couldn\u2019t reserve a unique slug. Try again.";
+      default:
+        return "Generation failed" + (code ? " (" + code + ")" : "") + ".";
+    }
+  }
+
+  async function generateBlogWithAi() {
+    var btn = $("btnBlogAiGenerate");
+    var topic = ($("blogAiTopic") && $("blogAiTopic").value || "").trim();
+    if (!topic) {
+      setBlogAiStatus("err", "Add a topic or working title first.");
+      var t = $("blogAiTopic"); if (t) t.focus();
+      return;
+    }
+    var user = auth && auth.currentUser;
+    if (!user) {
+      setBlogAiStatus("err", "Sign in again before generating.");
+      return;
+    }
+
+    var payload = {
+      topic: topic,
+      audience: ($("blogAiAudience") && $("blogAiAudience").value || "").trim(),
+      keyword: ($("blogAiKeyword") && $("blogAiKeyword").value || "").trim(),
+      category: ($("blogAiCategory") && $("blogAiCategory").value || "").trim(),
+      tone: ($("blogAiTone") && $("blogAiTone").value || "").trim(),
+      imageStyle: ($("blogAiImageStyle") && $("blogAiImageStyle").value || "").trim(),
+      sectionsCount: parseInt(($("blogAiSections") && $("blogAiSections").value) || "0", 10) || 0,
+      notes: ($("blogAiNotes") && $("blogAiNotes").value || "").trim(),
+      generateImage: !!($("blogAiGenerateImage") && $("blogAiGenerateImage").checked),
+    };
+
+    if (btn) btn.disabled = true;
+    setBlogAiStatus("ok", "Reviewing the blog and drafting content\u2026 this can take ~30\u201360s.");
+
+    try {
+      var token = await user.getIdToken();
+      var resp = await fetch("/api/generate-blog-post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify(payload),
+      });
+      var data = await resp.json().catch(function () { return {}; });
+      if (!resp.ok || !data.ok) {
+        setBlogAiStatus("err", describeBlogAiError(data.error || "unknown", data.detail));
+        return;
+      }
+      if (!data.payload || typeof data.payload !== "object") {
+        setBlogAiStatus("err", "The server returned an empty draft.");
+        return;
+      }
+
+      // Reset modal state so we treat this as a fresh draft, then load the
+      // generated content via the existing form-population path.
+      blogModalDocPublished = false;
+      blogOriginalData = JSON.parse(JSON.stringify(data.payload));
+      $("blogEditId").value = "";
+      $("blogSlug").readOnly = false;
+      applyBlogDataToForm(data.payload);
+      setBlogModalMode(true, true);
+      syncBlogButtons();
+      flushBlogPendingSync();
+      syncBlogJsonFromForm();
+      blogLastEditedSide = "form";
+
+      var summary = "Draft loaded into the form. Review before saving.";
+      summary += " Considered " + (data.existingPostsConsidered || 0) + " existing posts.";
+      if (data.imageGenerated) {
+        summary += " Cover image uploaded to Firebase Storage.";
+      } else if (payload.generateImage) {
+        summary += " Cover image generation skipped or failed — add one manually if needed.";
+      }
+      setBlogAiStatus("ok", summary);
+
+      var titleEl = $("blogTitle");
+      if (titleEl) setTimeout(function () { titleEl.focus(); }, 0);
+    } catch (e) {
+      console.error("AI blog generation failed", e);
+      setBlogAiStatus("err", "Network error: " + (e && e.message ? e.message : e));
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
   // ─── Blog JSON-error modal actions ───
   function onBlogJsonErrFix() {
     closeModal("blogJsonErrorModal");
@@ -2216,6 +2412,7 @@
     $("btnModalCancel").addEventListener("click", closeProjectModalCleanup);
     $("modalCloseBtn").addEventListener("click", closeProjectModalCleanup);
     $("coverFile").addEventListener("change", uploadCover);
+    $("galleryFiles").addEventListener("change", uploadGalleryImages);
     $("slugAuto").addEventListener("click", function () { $("slug").value = slugify($("title").value); });
     $("projectForm").addEventListener("submit", function (ev) { ev.preventDefault(); });
     var pm = $("projectModal");
@@ -2223,11 +2420,11 @@
 
     // JSON view ↔ form fields bidirectional sync (last edit wins)
     $("projectForm").addEventListener("input", function (e) {
-      if (e.target && (e.target.id === "projectJson" || e.target.id === "coverFile")) return;
+      if (e.target && (e.target.id === "projectJson" || e.target.id === "coverFile" || e.target.id === "galleryFiles")) return;
       onProjectFieldInput();
     });
     $("projectForm").addEventListener("change", function (e) {
-      if (e.target && (e.target.id === "projectJson" || e.target.id === "coverFile")) return;
+      if (e.target && (e.target.id === "projectJson" || e.target.id === "coverFile" || e.target.id === "galleryFiles")) return;
       onProjectFieldInput();
     });
     var pj = $("projectJson");
@@ -2293,6 +2490,7 @@
       if (!e.target) return;
       var id = e.target.id;
       if (id === "blogJson" || id === "blogCoverFile" || id === "blogAuthorAvatarFile" || id === "blogAuthorPick") return;
+      if (id && id.indexOf("blogAi") === 0) return;
       if (id && id.indexOf("blogAuthor") === 0) setBlogAuthorPick("");
       onBlogFieldInput();
     });
@@ -2300,6 +2498,7 @@
       if (!e.target) return;
       var id = e.target.id;
       if (id === "blogJson" || id === "blogCoverFile" || id === "blogAuthorAvatarFile" || id === "blogAuthorPick") return;
+      if (id && id.indexOf("blogAi") === 0) return;
       if (id && id.indexOf("blogAuthor") === 0 && id !== "blogAuthorPick") setBlogAuthorPick("");
       onBlogFieldInput();
     });
@@ -2308,6 +2507,12 @@
     $("btnBlogJsonErrFix").addEventListener("click", onBlogJsonErrFix);
     $("btnBlogJsonErrDiscard").addEventListener("click", onBlogJsonErrDiscard);
     $("btnBlogJsonErrKeep").addEventListener("click", onBlogJsonErrKeep);
+
+    // AI blog generator
+    var btnAiGenerate = $("btnBlogAiGenerate");
+    if (btnAiGenerate) btnAiGenerate.addEventListener("click", generateBlogWithAi);
+    var btnAiClear = $("btnBlogAiClear");
+    if (btnAiClear) btnAiClear.addEventListener("click", clearBlogAiInputs);
 
     // Escape key closes any open modal (top-most first)
     document.addEventListener("keydown", function (e) {

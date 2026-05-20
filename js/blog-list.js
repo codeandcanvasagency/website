@@ -201,6 +201,123 @@
     });
   }
 
+  function plainText(s) {
+    var d = document.createElement("div");
+    d.innerHTML = String(s == null ? "" : s);
+    return (d.textContent || "").trim();
+  }
+
+  function siteOrigin() {
+    var o = location.origin;
+    if (o && o !== "null" && o.indexOf("file:") !== 0) return o;
+    return "https://code-and-canvas.web.app";
+  }
+
+  function absoluteAssetUrl(url) {
+    var origin = siteOrigin();
+    if (!url) return origin + "/images/meta-webstudio-x-webflow-template.png";
+    if (/^https?:\/\//i.test(url)) return url;
+    return origin + (url.charAt(0) === "/" ? url : "/" + url);
+  }
+
+  function upsertMeta(attr, key, content) {
+    if (!content) return;
+    var sel = attr === "property"
+      ? 'meta[property="' + key + '"]'
+      : 'meta[name="' + key + '"]';
+    var el = document.querySelector(sel);
+    if (!el) {
+      el = document.createElement("meta");
+      el.setAttribute(attr, key);
+      document.head.appendChild(el);
+    }
+    el.setAttribute("content", content);
+  }
+
+  function upsertJsonLd(id, data) {
+    var el = document.getElementById(id);
+    if (!data) {
+      if (el) el.remove();
+      return;
+    }
+    if (!el) {
+      el = document.createElement("script");
+      el.type = "application/ld+json";
+      el.id = id;
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify(data);
+  }
+
+  function syncBlogIndexSeo() {
+    var latest = allPosts.length ? allPosts[0] : null;
+    var canonical = siteOrigin() + "/blog";
+    var description =
+      "Articles, field notes and resources from Code & Canvas — a London & Dubai digital agency.";
+    var pageTitle = "Blog | Code & Canvas";
+    var ogTitle = "Blog | Code & Canvas";
+    var ogDescription = description;
+    var image = absoluteAssetUrl("");
+
+    if (latest) {
+      var seo = latest.seo || {};
+      var articleTitle = plainText(seo.metaTitle || latest.title || "");
+      var articleSummary = (seo.metaDescription || latest.summary || "").trim().slice(0, 300);
+      if (articleTitle) ogTitle = articleTitle;
+      if (articleSummary) {
+        description = articleSummary;
+        ogDescription = articleSummary;
+      }
+      image = absoluteAssetUrl((latest.coverImage && latest.coverImage.url) || "");
+      if (articleTitle) {
+        pageTitle = "Blog — Latest: " + articleTitle + " | Code & Canvas";
+      }
+    }
+
+    document.title = pageTitle;
+    upsertMeta("name", "description", description);
+    upsertMeta("property", "og:title", ogTitle);
+    upsertMeta("property", "og:description", ogDescription);
+    upsertMeta("property", "og:type", "website");
+    upsertMeta("property", "og:url", canonical);
+    upsertMeta("property", "og:image", image);
+    upsertMeta("name", "twitter:card", "summary_large_image");
+    upsertMeta("name", "twitter:title", ogTitle);
+    upsertMeta("name", "twitter:description", ogDescription);
+    upsertMeta("name", "twitter:image", image);
+
+    var origin = siteOrigin();
+    var blogPost = allPosts.slice(0, 12).filter(function (p) { return p.slug; }).map(function (p) {
+      var entry = {
+        "@type": "BlogPosting",
+        headline: plainText(p.title || ""),
+        url: origin + "/blog/" + encodeURIComponent(p.slug),
+      };
+      if (p.publishedAt) {
+        var raw = p.publishedAt;
+        if (typeof raw === "object" && typeof raw.toDate === "function") raw = raw.toDate();
+        var dt = raw instanceof Date ? raw : new Date(raw);
+        if (!isNaN(dt.getTime())) entry.datePublished = dt.toISOString();
+      }
+      return entry;
+    });
+
+    upsertJsonLd("cc-blog-index-jsonld", {
+      "@context": "https://schema.org",
+      "@type": "Blog",
+      name: "Code & Canvas Blog",
+      url: canonical,
+      description: description,
+      publisher: {
+        "@type": "Organization",
+        name: "Code & Canvas",
+        url: origin,
+        logo: { "@type": "ImageObject", url: origin + "/images/favicon.png" },
+      },
+      blogPost: blogPost,
+    });
+  }
+
   function applyFilters() {
     filteredPosts = getFilteredPosts();
     renderFilterSelect();
@@ -208,6 +325,7 @@
     renderFeatured();
     renderGrid();
     renderPagination();
+    syncBlogIndexSeo();
   }
 
   function renderFeatured() {
