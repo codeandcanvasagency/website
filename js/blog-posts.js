@@ -8,38 +8,51 @@
       .replace(/"/g, "&quot;");
   }
 
-  function readMinutes(p) {
-    if (p.readMinutes) return Math.max(1, parseInt(p.readMinutes, 10) || 1) + " min read";
-    if (p.readTime) return esc(p.readTime);
-    var body = String(p.body || p.content || p.excerpt || "");
-    if (!body) return "";
-    var words = body.split(/\s+/).length;
-    var mins = Math.max(1, Math.round(words / 220));
+  function readMinutesText(n) {
+    var mins = parseInt(n, 10);
+    if (!mins || mins < 1) return "";
     return mins + " min read";
   }
 
   function summaryFor(p) {
     if (p.summary) return String(p.summary);
-    if (p.excerpt) return String(p.excerpt);
-    var body = String(p.body || p.content || "");
-    if (!body) return "";
-    var firstPara = body.split(/\n\s*\n/)[0] || body;
-    return firstPara.replace(/<[^>]+>/g, "").slice(0, 220);
+    return "";
+  }
+
+  // Same title-italic convention as blog-detail / blog-list.
+  function renderTitleHtml(title) {
+    var t = String(title == null ? "" : title);
+    if (/<span\s+class\s*=\s*["']italic["']/i.test(t)) return t;
+    var sep = / [\u2014\u2013\-] /;
+    var m = t.match(sep);
+    if (m) {
+      var idx = m.index;
+      var prefix = t.slice(0, idx);
+      var suffix = t.slice(idx + m[0].length);
+      if (suffix) {
+        var trailing = /[.!?]$/.test(suffix) ? "" : ".";
+        return esc(prefix) + ': <span class="italic">' + esc(suffix) + trailing + "</span>";
+      }
+    }
+    return esc(t);
   }
 
   function carouselCardMarkup(p) {
     var href = "/blog/" + esc(p.slug);
-    var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
-    var title = esc(p.title || "Blog Post");
+    var coverUrl = (p.coverImage && p.coverImage.url) || "";
+    var coverAlt = (p.coverImage && p.coverImage.alt) || p.title || "";
+    var img = esc(coverUrl || "/images/image-placeholder.svg");
+    var alt = esc(coverAlt);
+    var titleHtml = renderTitleHtml(p.title || "Blog Post");
     var summary = esc(summaryFor(p));
     var category = esc(p.category || "");
-    var read = readMinutes(p);
+    var read = readMinutesText(p.readingTimeMinutes);
     var meta = [category, read].filter(Boolean).map(function (m) { return "<span>" + m + "</span>"; }).join("");
     return (
       '<a href="' + href + '" class="carousel-card">' +
-      '<div class="img"><img loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" /></div>' +
+      '<div class="img"><img loading="lazy" decoding="async" src="' + img + '" alt="' + alt + '" /></div>' +
       (meta ? '<div class="card-meta">' + meta + "</div>" : "") +
-      '<div class="title">' + title + "</div>" +
+      '<div class="title">' + titleHtml + "</div>" +
       (summary ? '<p class="summary">' + summary + "</p>" : "") +
       "</a>"
     );
@@ -50,7 +63,7 @@
     var db = firebase.firestore();
     return db.collection("blog_posts")
       .where("published", "==", true)
-      .orderBy("date", "desc")
+      .orderBy("publishedAt", "desc")
       .limit(8)
       .get()
       .then(function (snap) {

@@ -2102,7 +2102,11 @@ body[data-screen-label="Contact"] .office-map iframe {
 }
 
 .share-row a:hover { border-color: var(--accent); color: var(--accent); }
-.share-row svg { width: 16px; height: 16px; }
+.share-row a.is-copied {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.share-row svg { width: 16px; height: 16px; display: block; flex-shrink: 0; }
 
 /* ---------- Prose ---------- */
 
@@ -2180,6 +2184,56 @@ body[data-screen-label="Contact"] .office-map iframe {
   color: var(--accent);
   font-family: var(--mono);
   font-size: 14px;
+}
+
+.article-prose ol {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  counter-reset: cc-ol;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.article-prose ol li {
+  position: relative;
+  padding-left: 32px;
+  color: var(--paper-mute);
+  line-height: 1.55;
+  counter-increment: cc-ol;
+}
+
+.article-prose ol li::before {
+  content: counter(cc-ol, decimal-leading-zero) ".";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  top: 2px;
+}
+
+.article-prose .article-figure {
+  margin: 36px 0;
+}
+
+.article-prose .article-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line-100);
+}
+
+.article-prose .article-figure figcaption {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
 }
 
 .article-prose blockquote {

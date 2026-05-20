@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const { onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const logger = require("firebase-functions/logger");
@@ -14,6 +16,73 @@ const ALLOWED_ORIGINS = new Set([
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ]);
+
+const SITE_ORIGIN = "https://code-and-canvas.web.app";
+const DEFAULT_OG_IMAGE = SITE_ORIGIN + "/images/meta-webstudio-x-webflow-template.png";
+
+let blogDetailShellCache = null;
+
+function getBlogDetailShell() {
+  if (!blogDetailShellCache) {
+    blogDetailShellCache = fs.readFileSync(
+      path.join(__dirname, "blog-detail-shell.html"),
+      "utf8",
+    );
+  }
+  return blogDetailShellCache;
+}
+
+function escHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function stripHtml(value) {
+  return String(value == null ? "" : value).replace(/<[^>]*>/g, "").trim();
+}
+
+function absoluteAssetUrl(url, origin) {
+  if (!url) return DEFAULT_OG_IMAGE;
+  if (/^https?:\/\//i.test(url)) return url;
+  return origin + (url.startsWith("/") ? url : "/" + url);
+}
+
+function extractBlogSlug(reqPath) {
+  const match = (reqPath || "").match(/^\/blog\/([^/?#]+)/);
+  if (!match) return "";
+  return decodeURIComponent(match[1]).replace(/\.html$/i, "");
+}
+
+function buildBlogMetaHtml(post, slug, origin) {
+  const seo = post && post.seo ? post.seo : {};
+  const title = stripHtml(seo.metaTitle || (post && post.title) || "Article");
+  const description =
+    (seo.metaDescription || (post && post.summary) || "An article from the Code & Canvas studio.")
+      .trim()
+      .slice(0, 300);
+  const pageTitle = title + " | Code & Canvas";
+  const canonical = origin + "/blog/" + encodeURIComponent(slug || "");
+  const cover = post && post.coverImage ? post.coverImage : {};
+  const image = absoluteAssetUrl(cover.url, origin);
+
+  return (
+    "<title>" + escHtml(pageTitle) + "</title>\n" +
+    '<meta name="description" content="' + escHtml(description) + '" />\n' +
+    '<link rel="canonical" href="' + escHtml(canonical) + '" />\n' +
+    '<meta property="og:title" content="' + escHtml(title) + '" />\n' +
+    '<meta property="og:description" content="' + escHtml(description) + '" />\n' +
+    '<meta property="og:type" content="article" />\n' +
+    '<meta property="og:url" content="' + escHtml(canonical) + '" />\n' +
+    '<meta property="og:image" content="' + escHtml(image) + '" />\n' +
+    '<meta name="twitter:card" content="summary_large_image" />\n' +
+    '<meta name="twitter:title" content="' + escHtml(title) + '" />\n' +
+    '<meta name="twitter:description" content="' + escHtml(description) + '" />\n' +
+    '<meta name="twitter:image" content="' + escHtml(image) + '" />'
+  );
+}
 
 function corsHeaders(req) {
   const origin = req.headers.origin || "";
@@ -534,6 +603,15 @@ const SEED_REVIEWS = [
   },
 ];
 
+const STUDIO_AUTHOR = {
+  name: "Code & Canvas",
+  role: "Studio",
+  avatarUrl: "",
+  bio: "Notes from the studio on brand, product, engineering and growth.",
+  linkedinUrl: "",
+  moreArticlesUrl: "/blog",
+};
+
 const SEED_BLOG_POSTS = [
   {
     id: "future-of-branding-in-digital-age",
@@ -541,10 +619,27 @@ const SEED_BLOG_POSTS = [
     title: "The Future of Branding in the Digital Age",
     summary: "How emerging technologies and shifting consumer expectations are reshaping brand identity — and what businesses can do to stay ahead.",
     category: "Branding",
-    coverImageUrl: "/images/placeholder.jpg",
-    bodyHtml: "<p>Branding has evolved far beyond logos and colour palettes. In a hyper-connected world, your brand is every interaction a customer has with your business — from social feeds to product packaging. We explore the trends shaping modern brand strategy.</p>",
-    author: "Code & Canvas",
-    date: "2026-03-28",
+    tags: ["Branding", "Strategy"],
+    publishedAt: "2026-03-28",
+    readingTimeMinutes: 4,
+    author: STUDIO_AUTHOR,
+    coverImage: { url: "/images/placeholder.jpg", alt: "Future of branding cover" },
+    toc: [],
+    body: [
+      {
+        type: "section",
+        id: "overview",
+        number: "01",
+        heading: "Beyond logos and palettes",
+        blocks: [
+          { type: "lead", text: "Branding has evolved far beyond logos and colour palettes." },
+          { type: "paragraph", text: "In a hyper-connected world, your brand is every interaction a customer has with your business — from social feeds to product packaging. We explore the trends shaping modern brand strategy." },
+          { type: "callout", tag: "→ Studio practice", text: "We treat every customer touchpoint as a brand surface, not just the marketing site." },
+        ],
+      },
+    ],
+    related: [],
+    seo: { metaTitle: "", metaDescription: "" },
     published: true,
   },
   {
@@ -553,10 +648,38 @@ const SEED_BLOG_POSTS = [
     title: "Why Mobile-First Design Still Matters in 2026",
     summary: "With over 60% of web traffic coming from mobile devices, designing for small screens first isn't optional — it's essential.",
     category: "Design",
-    coverImageUrl: "/images/placeholder.jpg",
-    bodyHtml: "<p>Mobile-first design ensures your product is accessible, performant, and usable across every device. We break down why the approach remains the gold standard and share practical tips for getting it right.</p>",
-    author: "Code & Canvas",
-    date: "2026-03-20",
+    tags: ["Design", "Mobile", "UX"],
+    publishedAt: "2026-03-20",
+    readingTimeMinutes: 5,
+    author: STUDIO_AUTHOR,
+    coverImage: { url: "/images/placeholder.jpg", alt: "Mobile-first design" },
+    toc: [],
+    body: [
+      {
+        type: "section",
+        id: "why-it-matters",
+        number: "01",
+        heading: "Why it still matters",
+        blocks: [
+          { type: "paragraph", text: "Mobile-first design ensures your product is accessible, performant, and usable across every device." },
+        ],
+      },
+      {
+        type: "section",
+        id: "principles",
+        number: "02",
+        heading: "Three principles we follow",
+        blocks: [
+          { type: "list", style: "bullet", items: [
+            "Design constraints first, expand later",
+            "Performance is a feature",
+            "Tap targets and thumb reach are non-negotiable",
+          ] },
+        ],
+      },
+    ],
+    related: [],
+    seo: { metaTitle: "", metaDescription: "" },
     published: true,
   },
   {
@@ -564,11 +687,32 @@ const SEED_BLOG_POSTS = [
     slug: "building-scalable-web-apps-with-firebase",
     title: "Building Scalable Web Apps with Firebase",
     summary: "Firebase offers a powerful toolkit for startups and agencies alike. Here's how we use it to ship fast without sacrificing quality.",
-    category: "Development",
-    coverImageUrl: "/images/placeholder.jpg",
-    bodyHtml: "<p>From Firestore to Cloud Functions, Firebase lets small teams punch above their weight. In this post, we walk through our favourite patterns for authentication, real-time data, and serverless APIs.</p>",
-    author: "Code & Canvas",
-    date: "2026-03-12",
+    category: "Engineering",
+    tags: ["Engineering", "Firebase"],
+    publishedAt: "2026-03-12",
+    readingTimeMinutes: 6,
+    author: STUDIO_AUTHOR,
+    coverImage: { url: "/images/placeholder.jpg", alt: "Firebase architecture" },
+    toc: [],
+    body: [
+      {
+        type: "section",
+        id: "stack",
+        number: "01",
+        heading: "Our default stack",
+        blocks: [
+          { type: "paragraph", text: "From Firestore to Cloud Functions, Firebase lets small teams punch above their weight." },
+          { type: "subheading", text: "What we reach for" },
+          { type: "list", style: "number", items: [
+            "Firestore for documents and reactive data",
+            "Cloud Functions for serverless APIs",
+            "Firebase Auth for identity",
+          ] },
+        ],
+      },
+    ],
+    related: [],
+    seo: { metaTitle: "", metaDescription: "" },
     published: true,
   },
   {
@@ -577,10 +721,26 @@ const SEED_BLOG_POSTS = [
     title: "How Design Systems Save Time and Money",
     summary: "A well-crafted design system isn't a luxury — it's an investment that pays for itself on every project.",
     category: "Design",
-    coverImageUrl: "/images/placeholder.jpg",
-    bodyHtml: "<p>Design systems bring consistency, speed, and collaboration to product development. We look at how creating reusable component libraries and tokens has transformed our workflow and our clients' products.</p>",
-    author: "Code & Canvas",
-    date: "2026-03-05",
+    tags: ["Design Systems", "Process"],
+    publishedAt: "2026-03-05",
+    readingTimeMinutes: 4,
+    author: STUDIO_AUTHOR,
+    coverImage: { url: "/images/placeholder.jpg", alt: "Design system tokens" },
+    toc: [],
+    body: [
+      {
+        type: "section",
+        id: "the-case",
+        number: "01",
+        heading: "The case for systems",
+        blocks: [
+          { type: "paragraph", text: "Design systems bring consistency, speed, and collaboration to product development." },
+          { type: "quote", text: "A system is a contract between yesterday's decisions and tomorrow's pace.", cite: "— Studio notes" },
+        ],
+      },
+    ],
+    related: [],
+    seo: { metaTitle: "", metaDescription: "" },
     published: true,
   },
   {
@@ -589,10 +749,32 @@ const SEED_BLOG_POSTS = [
     title: "From Concept to Launch: Our End-to-End Process",
     summary: "A behind-the-scenes look at how we take ideas from the whiteboard to a live, polished product.",
     category: "Process",
-    coverImageUrl: "/images/placeholder.jpg",
-    bodyHtml: "<p>Every project at Code & Canvas follows a proven framework: discover, define, design, develop, and deliver. We share how each phase works and why having a structured process leads to better outcomes for our clients.</p>",
-    author: "Code & Canvas",
-    date: "2026-02-25",
+    tags: ["Process", "Studio"],
+    publishedAt: "2026-02-25",
+    readingTimeMinutes: 5,
+    author: STUDIO_AUTHOR,
+    coverImage: { url: "/images/placeholder.jpg", alt: "Studio process" },
+    toc: [],
+    body: [
+      {
+        type: "section",
+        id: "framework",
+        number: "01",
+        heading: "Our five-phase framework",
+        blocks: [
+          { type: "lead", text: "Every project at Code & Canvas follows a proven framework: discover, define, design, develop, and deliver." },
+          { type: "list", style: "bullet", items: [
+            "Discover — research and alignment",
+            "Define — scope and success metrics",
+            "Design — flows and visual systems",
+            "Develop — production and integration",
+            "Deliver — launch and iterate",
+          ] },
+        ],
+      },
+    ],
+    related: [],
+    seo: { metaTitle: "", metaDescription: "" },
     published: true,
   },
 ];
@@ -635,7 +817,8 @@ exports.seedProjects = onRequest(async (req, res) => {
     }
     for (const b of SEED_BLOG_POSTS) {
       const { id: bId, ...bData } = b;
-      batch.set(db.collection("blog_posts").doc(bId), { ...bData, updatedAt: ts }, { merge: true });
+      // Replace blog documents with the new structured schema (migrate-now).
+      batch.set(db.collection("blog_posts").doc(bId), { ...bData, updatedAt: ts });
     }
     await batch.commit();
     res.status(200).json({
@@ -785,6 +968,37 @@ exports.publishAutoReviews = onRequest(async (req, res) => {
     logger.error("publishAutoReviews failed", error);
     res.status(500).json({ ok: false, error: "server_error" });
   }
+});
+
+exports.blogArticle = onRequest(async (req, res) => {
+  const slug = extractBlogSlug(req.path || "");
+  if (!slug) {
+    res.status(404).send("Not found");
+    return;
+  }
+
+  const origin = SITE_ORIGIN;
+  let post = null;
+
+  try {
+    const snap = await db
+      .collection("blog_posts")
+      .where("slug", "==", slug)
+      .where("published", "==", true)
+      .limit(1)
+      .get();
+    if (!snap.empty) post = snap.docs[0].data();
+  } catch (error) {
+    logger.error("blogArticle meta lookup failed", { slug, error });
+  }
+
+  const meta = buildBlogMetaHtml(post, slug, origin);
+  const html = getBlogDetailShell().replace("<!--BLOG_META-->", meta);
+  res
+    .set("Content-Type", "text/html; charset=utf-8")
+    .set("Cache-Control", "public, max-age=300, s-maxage=600")
+    .status(post ? 200 : 404)
+    .send(html);
 });
 
 exports.newsletter = onRequest(async (req, res) => {

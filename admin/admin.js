@@ -1,6 +1,7 @@
 (function () {
   var auth, db, storage;
   var companiesCache = [];
+  var authorsCache = [];
 
   function $(id) { return document.getElementById(id); }
   function show(el, on) { if (el) el.style.display = on ? "" : "none"; }
@@ -925,36 +926,848 @@
   }
 
   // ═══════════════════════════════════
-  //  BLOG POSTS
+  //  BLOG AUTHORS
   // ═══════════════════════════════════
-  var blogModalDocPublished = false;
-
-  function fillBlogForm(data, id) {
-    $("blogEditId").value = id || "";
-    $("blogTitle").value = data.title || "";
-    $("blogSlug").value = data.slug || "";
-    $("blogSlug").readOnly = !!id;
-    $("blogSummary").value = data.summary || "";
-    $("blogCategory").value = data.category || "";
-    $("blogCoverImageUrl").value = data.coverImageUrl || "";
-    $("blogBodyHtml").value = data.bodyHtml || "";
-    $("blogAuthor").value = data.author || "";
-    var dateEl = $("blogDate"); if (dateEl) dateEl.value = (data.date || "").slice(0, 10);
-    var cf = $("blogCoverFile"); if (cf) cf.value = "";
+  function emptyAuthorProfile() {
+    return { name: "", role: "", avatarUrl: "", bio: "", linkedinUrl: "", moreArticlesUrl: "" };
   }
 
-  function readBlogForm(published) {
+  function readAuthorForm() {
     return {
-      slug: slugify($("blogSlug").value) || slugify($("blogTitle").value),
-      title: $("blogTitle").value.trim(),
-      category: $("blogCategory").value.trim(),
-      summary: $("blogSummary").value.trim(),
-      coverImageUrl: $("blogCoverImageUrl").value.trim(),
-      bodyHtml: $("blogBodyHtml").value,
-      author: $("blogAuthor").value.trim(),
-      date: $("blogDate") && $("blogDate").value ? String($("blogDate").value).slice(0, 10) : "",
-      published: !!published,
+      name: $("authorName").value.trim(),
+      role: $("authorRole").value.trim(),
+      avatarUrl: $("authorAvatarUrl").value.trim(),
+      bio: $("authorBio").value.trim(),
+      linkedinUrl: $("authorLinkedinUrl").value.trim(),
+      moreArticlesUrl: $("authorMoreArticlesUrl").value.trim(),
     };
+  }
+
+  function fillAuthorForm(data, id) {
+    data = data || {};
+    $("authorEditId").value = id || "";
+    $("authorName").value = data.name || "";
+    $("authorRole").value = data.role || "";
+    $("authorAvatarUrl").value = data.avatarUrl || "";
+    $("authorBio").value = data.bio || "";
+    $("authorLinkedinUrl").value = data.linkedinUrl || "";
+    $("authorMoreArticlesUrl").value = data.moreArticlesUrl || "";
+    var f = $("authorAvatarFile"); if (f) f.value = "";
+  }
+
+  function getAuthorById(id) {
+    return authorsCache.find(function (a) { return a.id === id; });
+  }
+
+  function populateBlogAuthorDropdown() {
+    var sel = $("blogAuthorPick");
+    if (!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">\u2014 Custom (type below) \u2014</option>';
+    authorsCache.forEach(function (a) {
+      var opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = a.name + (a.role ? " \u2014 " + a.role : "");
+      sel.appendChild(opt);
+    });
+    if (cur && authorsCache.some(function (a) { return a.id === cur; })) sel.value = cur;
+    else sel.value = "";
+  }
+
+  function applyAuthorProfileToBlogForm(profile) {
+    profile = profile || emptyAuthorProfile();
+    $("blogAuthorName").value = profile.name || "";
+    $("blogAuthorRole").value = profile.role || "";
+    $("blogAuthorAvatarUrl").value = profile.avatarUrl || "";
+    $("blogAuthorBio").value = profile.bio || "";
+    $("blogAuthorLinkedinUrl").value = profile.linkedinUrl || "";
+    $("blogAuthorMoreArticlesUrl").value = profile.moreArticlesUrl || "";
+  }
+
+  function setBlogAuthorPick(id) {
+    var sel = $("blogAuthorPick");
+    if (!sel) return;
+    if (id && authorsCache.some(function (a) { return a.id === id; })) sel.value = id;
+    else sel.value = "";
+  }
+
+  function resolveBlogAuthorPickId(data) {
+    if (!data) return "";
+    if (data.authorId && getAuthorById(data.authorId)) return data.authorId;
+    var a = data.author;
+    if (!a || typeof a !== "object" || !a.name) return "";
+    var name = String(a.name).trim().toLowerCase();
+    var match = authorsCache.find(function (x) {
+      return String(x.name || "").trim().toLowerCase() === name;
+    });
+    return match ? match.id : "";
+  }
+
+  function onBlogAuthorPickChange() {
+    var id = $("blogAuthorPick") && $("blogAuthorPick").value;
+    if (!id) return;
+    var author = getAuthorById(id);
+    if (!author) return;
+    applyAuthorProfileToBlogForm(author);
+    onBlogFieldInput();
+  }
+
+  function openNewAuthorModal() {
+    fillAuthorForm({}, "");
+    $("authorModalTitle").textContent = "New author";
+    $("btnDeleteAuthor").hidden = true;
+    openModal("authorModal");
+    $("authorSaveStatus").textContent = "";
+    setTimeout(function () { $("authorName").focus(); }, 0);
+  }
+
+  function openEditAuthorModal(data, docId) {
+    fillAuthorForm(data, docId);
+    $("authorModalTitle").textContent = "Edit author";
+    $("btnDeleteAuthor").hidden = false;
+    openModal("authorModal");
+    $("authorSaveStatus").textContent = "";
+    setTimeout(function () { $("authorName").focus(); }, 0);
+  }
+
+  async function saveAuthor() {
+    $("authorSaveStatus").textContent = "";
+    $("authorSaveStatus").className = "ok";
+    var form = $("authorForm");
+    if (form && !form.reportValidity()) return;
+    var profile = readAuthorForm();
+    if (!profile.name) {
+      $("authorSaveStatus").textContent = "Author name is required.";
+      $("authorSaveStatus").className = "err";
+      return;
+    }
+    var editId = $("authorEditId").value;
+    var docId = editId || slugify(profile.name);
+    try {
+      await db.collection("blog_authors").doc(docId).set(
+        Object.assign({}, profile, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }),
+        { merge: true }
+      );
+      $("authorSaveStatus").textContent = "Saved.";
+      $("authorEditId").value = docId;
+      $("authorModalTitle").textContent = "Edit author";
+      $("btnDeleteAuthor").hidden = false;
+      await refreshAuthors();
+    } catch (e) {
+      console.error(e);
+      $("authorSaveStatus").textContent = "Save failed: " + (e.message || e);
+      $("authorSaveStatus").className = "err";
+    }
+  }
+
+  async function deleteAuthor() {
+    var editId = $("authorEditId").value;
+    if (!editId) return;
+    if (!confirm("Delete this author profile permanently? Existing blog posts keep their saved author text.")) return;
+    try {
+      await db.collection("blog_authors").doc(editId).delete();
+      closeModal("authorModal");
+      await refreshAuthors();
+    } catch (e) {
+      $("authorSaveStatus").textContent = "Delete failed: " + (e.message || e);
+      $("authorSaveStatus").className = "err";
+    }
+  }
+
+  async function uploadAuthorAvatar(ev) {
+    var file = ev.target.files && ev.target.files[0];
+    if (!file || !auth.currentUser) return;
+    var slug = slugify($("authorName").value.trim()) || "author-" + Date.now();
+    var path = "authors/" + slug + "/avatar-" + Date.now() + "-" + file.name.replace(/\s/g, "_");
+    $("authorUploadStatus").textContent = "Uploading\u2026";
+    try {
+      var ref = storage.ref(path);
+      await ref.put(file);
+      $("authorAvatarUrl").value = await ref.getDownloadURL();
+      $("authorUploadStatus").textContent = "Uploaded.";
+    } catch (e) {
+      console.error("author avatar upload error", e);
+      $("authorUploadStatus").textContent = "Upload failed: " + (e.message || e);
+    }
+  }
+
+  function buildAuthorCard(doc, data, onEdit) {
+    var card = document.createElement("article");
+    card.className = "project-card";
+    var thumb = document.createElement("div");
+    thumb.className = "project-card-thumb";
+    if (data.avatarUrl) {
+      var img = document.createElement("img");
+      img.src = data.avatarUrl;
+      img.alt = "";
+      img.loading = "lazy";
+      thumb.appendChild(img);
+    }
+    var body = document.createElement("div");
+    body.className = "project-card-body";
+    var h3 = document.createElement("h3");
+    h3.className = "project-card-title";
+    h3.textContent = data.name || doc.id;
+    var meta = document.createElement("div");
+    meta.className = "project-card-meta";
+    meta.textContent = data.role || "";
+    var sum = document.createElement("p");
+    sum.className = "project-card-summary";
+    sum.textContent = snippet(data.bio, 160);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Edit";
+    btn.onclick = onEdit;
+    body.appendChild(h3);
+    body.appendChild(meta);
+    body.appendChild(sum);
+    body.appendChild(btn);
+    card.appendChild(thumb);
+    card.appendChild(body);
+    return card;
+  }
+
+  async function refreshAuthors() {
+    var list = $("authorList");
+    var empty = $("authorsEmpty");
+    if (list) list.innerHTML = "";
+    authorsCache = [];
+    var snap = await db.collection("blog_authors").orderBy("name").get();
+    snap.forEach(function (doc) {
+      var d = doc.data();
+      authorsCache.push({
+        id: doc.id,
+        name: d.name || "",
+        role: d.role || "",
+        avatarUrl: d.avatarUrl || "",
+        bio: d.bio || "",
+        linkedinUrl: d.linkedinUrl || "",
+        moreArticlesUrl: d.moreArticlesUrl || "",
+      });
+      if (list) {
+        list.appendChild(buildAuthorCard(doc, d, function () { openEditAuthorModal(d, doc.id); }));
+      }
+    });
+    if (empty) empty.hidden = authorsCache.length > 0;
+    populateBlogAuthorDropdown();
+  }
+
+  // ═══════════════════════════════════
+  //  BLOG POSTS
+  // ═══════════════════════════════════
+  var EMPTY_BLOG_TEMPLATE = {
+    slug: "",
+    title: "",
+    summary: "",
+    category: "",
+    tags: [],
+    publishedAt: "",
+    readingTimeMinutes: 0,
+    author: { name: "", role: "", avatarUrl: "", bio: "", linkedinUrl: "", moreArticlesUrl: "" },
+    coverImage: { url: "", alt: "" },
+    toc: [],
+    body: [],
+    related: [],
+    seo: { metaTitle: "", metaDescription: "" },
+  };
+
+  var BLOG_BLOCK_TYPES = [
+    { value: "lead", label: "Lead paragraph" },
+    { value: "paragraph", label: "Paragraph" },
+    { value: "subheading", label: "Subheading (h3)" },
+    { value: "list", label: "List" },
+    { value: "quote", label: "Quote" },
+    { value: "callout", label: "Callout" },
+    { value: "image", label: "Image" },
+  ];
+
+  var blogModalDocPublished = false;
+  var blogState = { toc: [], body: [], related: [] };
+  var blogJsonSyncing = false;
+  var blogJsonSyncTimer = null;
+  var blogJsonParseTimer = null;
+  var blogLastEditedSide = "form";
+  var blogOriginalData = null;
+  var blogPendingSavePublished = null;
+  var blogDelegationWired = false;
+
+  function blogEsc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function makeEmptyBlogBlock(type) {
+    switch (type) {
+      case "lead":
+      case "paragraph":
+      case "subheading":
+        return { type: type, text: "" };
+      case "list":
+        return { type: "list", style: "bullet", items: [] };
+      case "quote":
+        return { type: "quote", text: "", cite: "" };
+      case "callout":
+        return { type: "callout", tag: "", text: "" };
+      case "image":
+        return { type: "image", url: "", alt: "", caption: "" };
+      default:
+        return { type: "paragraph", text: "" };
+    }
+  }
+  function makeEmptyBlogSection() {
+    return { type: "section", id: "", number: "", heading: "", blocks: [] };
+  }
+  function makeEmptyBlogTocItem() { return { id: "", label: "" }; }
+  function makeEmptyBlogRelated() {
+    return {
+      slug: "",
+      title: "",
+      summary: "",
+      category: "",
+      readingTimeMinutes: 0,
+      publishedAt: "",
+      coverImage: { url: "", alt: "" },
+    };
+  }
+
+  function normalizeBlogBlock(b) {
+    if (!b || !b.type) return { type: "paragraph", text: "" };
+    switch (b.type) {
+      case "lead":
+      case "paragraph":
+      case "subheading":
+        return { type: b.type, text: String(b.text || "") };
+      case "list":
+        return {
+          type: "list",
+          style: b.style === "number" ? "number" : "bullet",
+          items: Array.isArray(b.items)
+            ? b.items.map(function (s) { return String(s); }).filter(function (s) { return s.trim() !== ""; })
+            : [],
+        };
+      case "quote":
+        return { type: "quote", text: String(b.text || ""), cite: String(b.cite || "") };
+      case "callout":
+        return { type: "callout", tag: String(b.tag || ""), text: String(b.text || "") };
+      case "image":
+        return { type: "image", url: String(b.url || ""), alt: String(b.alt || ""), caption: String(b.caption || "") };
+      default:
+        return { type: "paragraph", text: String(b.text || "") };
+    }
+  }
+
+  // ─── Schema placeholders (JSON view documentation) ─────────────
+  // The JSON view at the bottom of the blog modal always shows the FULL schema
+  // including the shape of array items. When an array is empty in the form,
+  // these placeholder items are injected into the JSON view so the user can see
+  // what each item type looks like. They are filtered out on save and when
+  // parsing JSON back to the form, so they never make it into Firestore.
+  function blogTocPlaceholder() { return { id: "", label: "" }; }
+  function blogRelatedPlaceholder() {
+    return {
+      slug: "", title: "", summary: "", category: "",
+      readingTimeMinutes: 0, publishedAt: "",
+      coverImage: { url: "", alt: "" },
+    };
+  }
+  function blogAllBlockPlaceholders() {
+    return [
+      { type: "lead", text: "" },
+      { type: "paragraph", text: "" },
+      { type: "subheading", text: "" },
+      { type: "list", style: "bullet", items: [] },
+      { type: "quote", text: "", cite: "" },
+      { type: "callout", tag: "", text: "" },
+      { type: "image", url: "", alt: "", caption: "" },
+    ];
+  }
+  function blogSectionPlaceholder() {
+    return {
+      type: "section",
+      id: "",
+      number: "",
+      heading: "",
+      blocks: blogAllBlockPlaceholders(),
+    };
+  }
+
+  function isEmptyBlogTocItem(t) {
+    if (!t) return true;
+    return !String(t.id || "").trim() && !String(t.label || "").trim();
+  }
+  function isEmptyBlogBlock(b) {
+    if (!b || !b.type) return true;
+    switch (b.type) {
+      case "lead":
+      case "paragraph":
+      case "subheading":
+        return !String(b.text || "").trim();
+      case "list":
+        return !Array.isArray(b.items) || !b.items.filter(function (s) { return String(s || "").trim(); }).length;
+      case "quote":
+        return !String(b.text || "").trim() && !String(b.cite || "").trim();
+      case "callout":
+        return !String(b.text || "").trim() && !String(b.tag || "").trim();
+      case "image":
+        return !String(b.url || "").trim() && !String(b.alt || "").trim() && !String(b.caption || "").trim();
+      default:
+        return true;
+    }
+  }
+  function isEmptyBlogSection(s) {
+    if (!s) return true;
+    var noFields = !String(s.id || "").trim() && !String(s.number || "").trim() && !String(s.heading || "").trim();
+    var noBlocks = !Array.isArray(s.blocks) || s.blocks.every(isEmptyBlogBlock);
+    return noFields && noBlocks;
+  }
+  function isEmptyBlogRelated(r) {
+    if (!r) return true;
+    var ci = r.coverImage || {};
+    return !String(r.slug || "").trim()
+      && !String(r.title || "").trim()
+      && !String(r.summary || "").trim()
+      && !String(r.category || "").trim()
+      && !(Number(r.readingTimeMinutes) > 0)
+      && !String(r.publishedAt || "").trim()
+      && !String(ci.url || "").trim()
+      && !String(ci.alt || "").trim();
+  }
+
+  // Builds the JSON shown in the bottom textarea: the canonical payload, plus
+  // schema placeholders for any empty arrays so the full structure is visible.
+  function buildBlogJsonViewPayload() {
+    var p = readBlogPayloadFromForm();
+    if (!p.toc.length) p.toc = [blogTocPlaceholder()];
+    if (!p.body.length) {
+      p.body = [blogSectionPlaceholder()];
+    } else {
+      p.body = p.body.map(function (s) {
+        if (!Array.isArray(s.blocks) || !s.blocks.length) {
+          return Object.assign({}, s, { blocks: blogAllBlockPlaceholders() });
+        }
+        return s;
+      });
+    }
+    if (!p.related.length) p.related = [blogRelatedPlaceholder()];
+    return p;
+  }
+
+  // Strips placeholder items (those that are entirely empty) from a payload
+  // before it is persisted. Also removes empty blocks inside non-empty sections.
+  function stripBlogPlaceholders(p) {
+    if (!p) return p;
+    p.toc = (Array.isArray(p.toc) ? p.toc : []).filter(function (t) { return !isEmptyBlogTocItem(t); });
+    p.body = (Array.isArray(p.body) ? p.body : [])
+      .map(function (s) {
+        var blocks = Array.isArray(s.blocks) ? s.blocks.filter(function (b) { return !isEmptyBlogBlock(b); }) : [];
+        return Object.assign({}, s, { blocks: blocks });
+      })
+      .filter(function (s) { return !isEmptyBlogSection(s); });
+    p.related = (Array.isArray(p.related) ? p.related : []).filter(function (r) { return !isEmptyBlogRelated(r); });
+    return p;
+  }
+
+  // ─── Repeater item renderers ─────────────────────────────
+  function buildBlogBlockEditorHTML(block, sIdx, bIdx) {
+    var b = block || {};
+    var type = b.type || "paragraph";
+    var typeOpts = BLOG_BLOCK_TYPES.map(function (t) {
+      return '<option value="' + t.value + '"' + (type === t.value ? " selected" : "") + ">" + t.label + "</option>";
+    }).join("");
+    var dp = ' data-s-idx="' + sIdx + '" data-b-idx="' + bIdx + '"';
+
+    var inner = "";
+    if (type === "lead" || type === "paragraph") {
+      inner =
+        '<span class="field-label">Text' + (type === "paragraph" ? " (HTML allowed: &lt;em&gt;, &lt;strong&gt;)" : "") + "</span>" +
+        '<textarea class="field-textarea" data-blog-block-field="text"' + dp + ">" + blogEsc(b.text || "") + "</textarea>";
+    } else if (type === "subheading") {
+      inner =
+        '<span class="field-label">Subheading text</span>' +
+        '<input type="text" class="field-input" data-blog-block-field="text"' + dp + ' value="' + blogEsc(b.text || "") + '" />';
+    } else if (type === "list") {
+      var style = b.style === "number" ? "number" : "bullet";
+      var items = Array.isArray(b.items) ? b.items.join("\n") : "";
+      inner =
+        '<div class="grid-2"><div>' +
+        '<span class="field-label">Style</span>' +
+        '<select class="field-select" data-blog-block-field="style"' + dp + ">" +
+        '<option value="bullet"' + (style === "bullet" ? " selected" : "") + ">Bullet (\u2192 markers)</option>" +
+        '<option value="number"' + (style === "number" ? " selected" : "") + ">Number</option>" +
+        "</select></div><div></div></div>" +
+        '<span class="field-label">Items (one per line)</span>' +
+        '<textarea class="field-textarea" data-blog-block-field="items"' + dp + ">" + blogEsc(items) + "</textarea>";
+    } else if (type === "quote") {
+      inner =
+        '<span class="field-label">Quote text</span>' +
+        '<textarea class="field-textarea" data-blog-block-field="text"' + dp + ">" + blogEsc(b.text || "") + "</textarea>" +
+        '<span class="field-label">Cite (attribution)</span>' +
+        '<input type="text" class="field-input" data-blog-block-field="cite"' + dp + ' value="' + blogEsc(b.cite || "") + '" placeholder="\u2014 Attribution" />';
+    } else if (type === "callout") {
+      inner =
+        '<span class="field-label">Tag (pink monospace label)</span>' +
+        '<input type="text" class="field-input" data-blog-block-field="tag"' + dp + ' value="' + blogEsc(b.tag || "") + '" placeholder="\u2192 Studio practice" />' +
+        '<span class="field-label">Text</span>' +
+        '<textarea class="field-textarea" data-blog-block-field="text"' + dp + ">" + blogEsc(b.text || "") + "</textarea>";
+    } else if (type === "image") {
+      inner =
+        '<span class="field-label">Image URL</span>' +
+        '<input type="text" class="field-input" data-blog-block-field="url"' + dp + ' value="' + blogEsc(b.url || "") + '" placeholder="https://\u2026 or /images/\u2026" />' +
+        '<span class="field-label">Alt text</span>' +
+        '<input type="text" class="field-input" data-blog-block-field="alt"' + dp + ' value="' + blogEsc(b.alt || "") + '" />' +
+        '<span class="field-label">Caption (optional)</span>' +
+        '<input type="text" class="field-input" data-blog-block-field="caption"' + dp + ' value="' + blogEsc(b.caption || "") + '" />';
+    }
+
+    return (
+      '<div class="repeater-item nested" data-blog-block-item' + dp + ">" +
+        '<div class="repeater-header">' +
+          '<span class="repeater-title">Block ' + (bIdx + 1) + " \u00b7 " + type + "</span>" +
+          '<div class="repeater-actions">' +
+            '<button type="button" class="icon-btn-sm" data-blog-action="block-up"' + dp + ' title="Move up">\u2191</button>' +
+            '<button type="button" class="icon-btn-sm" data-blog-action="block-down"' + dp + ' title="Move down">\u2193</button>' +
+            '<button type="button" class="icon-btn-sm danger" data-blog-action="block-remove"' + dp + ' title="Remove block">\u00d7</button>' +
+          "</div>" +
+        "</div>" +
+        '<div class="block-type-row">' +
+          '<span class="field-label" style="margin-top:0;margin-bottom:0">Type</span>' +
+          '<select class="field-select" data-blog-block-type' + dp + ">" + typeOpts + "</select>" +
+        "</div>" +
+        inner +
+      "</div>"
+    );
+  }
+
+  function buildBlogSectionEditorHTML(section, idx) {
+    var s = section || {};
+    var dp = ' data-s-idx="' + idx + '"';
+    var blocks = Array.isArray(s.blocks) ? s.blocks : [];
+    var blocksHTML = blocks.length
+      ? blocks.map(function (b, j) { return buildBlogBlockEditorHTML(b, idx, j); }).join("")
+      : '<p class="repeater-empty">No blocks yet. Add one below.</p>';
+    return (
+      '<div class="repeater-item" data-blog-section-item' + dp + ">" +
+        '<div class="repeater-header">' +
+          '<span class="repeater-title">Section ' + (idx + 1) + (s.number ? " \u00b7 " + blogEsc(s.number) : "") + (s.heading ? " \u00b7 " + blogEsc(s.heading) : "") + "</span>" +
+          '<div class="repeater-actions">' +
+            '<button type="button" class="icon-btn-sm" data-blog-action="section-up"' + dp + ' title="Move up">\u2191</button>' +
+            '<button type="button" class="icon-btn-sm" data-blog-action="section-down"' + dp + ' title="Move down">\u2193</button>' +
+            '<button type="button" class="icon-btn-sm danger" data-blog-action="section-remove"' + dp + ' title="Remove section">\u00d7</button>' +
+          "</div>" +
+        "</div>" +
+        '<div class="grid-2">' +
+          '<label>ID (anchor) <input type="text" class="field-input" data-blog-section-field="id"' + dp + ' value="' + blogEsc(s.id || "") + '" placeholder="e.g. tldr" /></label>' +
+          '<label>Number (marker) <input type="text" class="field-input" data-blog-section-field="number"' + dp + ' value="' + blogEsc(s.number || "") + '" placeholder="e.g. 01" /></label>' +
+        "</div>" +
+        '<label>Heading <input type="text" class="field-input" data-blog-section-field="heading"' + dp + ' value="' + blogEsc(s.heading || "") + '" /></label>' +
+        '<div style="margin-top:10px">' +
+          '<span class="field-label">Blocks</span>' +
+          '<div class="repeater" data-blog-blocks-list' + dp + ">" + blocksHTML + "</div>" +
+          '<button type="button" class="repeater-add" data-blog-action="block-add"' + dp + ">+ Add block</button>" +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  function buildBlogTocItemHTML(item, idx) {
+    var i = item || {};
+    var dp = ' data-t-idx="' + idx + '"';
+    return (
+      '<div class="repeater-item" data-blog-toc-item' + dp + ">" +
+        '<div class="repeater-header">' +
+          '<span class="repeater-title">Item ' + (idx + 1) + "</span>" +
+          '<div class="repeater-actions">' +
+            '<button type="button" class="icon-btn-sm" data-blog-action="toc-up"' + dp + ' title="Move up">\u2191</button>' +
+            '<button type="button" class="icon-btn-sm" data-blog-action="toc-down"' + dp + ' title="Move down">\u2193</button>' +
+            '<button type="button" class="icon-btn-sm danger" data-blog-action="toc-remove"' + dp + ' title="Remove">\u00d7</button>' +
+          "</div>" +
+        "</div>" +
+        '<div class="grid-2">' +
+          '<label>ID (anchor) <input type="text" class="field-input" data-blog-toc-field="id"' + dp + ' value="' + blogEsc(i.id || "") + '" placeholder="matches a section id" /></label>' +
+          '<label>Label <input type="text" class="field-input" data-blog-toc-field="label"' + dp + ' value="' + blogEsc(i.label || "") + '" /></label>' +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  function buildBlogRelatedItemHTML(item, idx) {
+    var r = item || {};
+    var ci = r.coverImage || {};
+    var dp = ' data-r-idx="' + idx + '"';
+    return (
+      '<div class="repeater-item" data-blog-related-item' + dp + ">" +
+        '<div class="repeater-header">' +
+          '<span class="repeater-title">Card ' + (idx + 1) + "</span>" +
+          '<div class="repeater-actions">' +
+            '<button type="button" class="icon-btn-sm" data-blog-action="rel-up"' + dp + ' title="Move up">\u2191</button>' +
+            '<button type="button" class="icon-btn-sm" data-blog-action="rel-down"' + dp + ' title="Move down">\u2193</button>' +
+            '<button type="button" class="icon-btn-sm danger" data-blog-action="rel-remove"' + dp + ' title="Remove">\u00d7</button>' +
+          "</div>" +
+        "</div>" +
+        '<div class="grid-2">' +
+          '<label>Slug <input type="text" class="field-input" data-blog-related-field="slug"' + dp + ' value="' + blogEsc(r.slug || "") + '" /></label>' +
+          '<label>Title <input type="text" class="field-input" data-blog-related-field="title"' + dp + ' value="' + blogEsc(r.title || "") + '" /></label>' +
+        "</div>" +
+        '<label>Summary <textarea class="field-textarea" data-blog-related-field="summary"' + dp + ">" + blogEsc(r.summary || "") + "</textarea></label>" +
+        '<div class="grid-2">' +
+          '<label>Category <input type="text" class="field-input" data-blog-related-field="category"' + dp + ' value="' + blogEsc(r.category || "") + '" /></label>' +
+          '<label>Reading time (minutes) <input type="number" min="0" step="1" class="field-input" data-blog-related-field="readingTimeMinutes"' + dp + ' value="' + blogEsc(r.readingTimeMinutes || 0) + '" /></label>' +
+        "</div>" +
+        '<div class="grid-2">' +
+          '<label>Published date <input type="date" class="field-input" data-blog-related-field="publishedAt"' + dp + ' value="' + blogEsc(String(r.publishedAt || "").slice(0, 10)) + '" /></label>' +
+          '<label>Cover image URL <input type="text" class="field-input" data-blog-related-field="coverImage.url"' + dp + ' value="' + blogEsc(ci.url || "") + '" /></label>' +
+        "</div>" +
+        '<label>Cover image alt <input type="text" class="field-input" data-blog-related-field="coverImage.alt"' + dp + ' value="' + blogEsc(ci.alt || "") + '" /></label>' +
+      "</div>"
+    );
+  }
+
+  function renderBlogTocList() {
+    var el = $("blogTocList");
+    if (!el) return;
+    if (!blogState.toc.length) {
+      el.innerHTML = '<p class="repeater-empty">No TOC entries yet. Body sections will auto-generate this when saved.</p>';
+      return;
+    }
+    el.innerHTML = blogState.toc.map(buildBlogTocItemHTML).join("");
+  }
+  function renderBlogBodyList() {
+    var el = $("blogBodyList");
+    if (!el) return;
+    if (!blogState.body.length) {
+      el.innerHTML = '<p class="repeater-empty">No sections yet. Add one below.</p>';
+      return;
+    }
+    el.innerHTML = blogState.body.map(buildBlogSectionEditorHTML).join("");
+  }
+  function renderBlogRelatedList() {
+    var el = $("blogRelatedList");
+    if (!el) return;
+    if (!blogState.related.length) {
+      el.innerHTML = '<p class="repeater-empty">No related articles yet.</p>';
+      return;
+    }
+    el.innerHTML = blogState.related.map(buildBlogRelatedItemHTML).join("");
+  }
+  function renderBlogDynamic() {
+    renderBlogTocList();
+    renderBlogBodyList();
+    renderBlogRelatedList();
+  }
+
+  function moveBlogArrayItem(arr, idx, delta, rerender) {
+    if (!arr || isNaN(idx) || idx < 0 || idx >= arr.length) return;
+    var j = idx + delta;
+    if (j < 0 || j >= arr.length) return;
+    var tmp = arr[j]; arr[j] = arr[idx]; arr[idx] = tmp;
+    if (rerender) rerender();
+  }
+  function removeBlogArrayItem(arr, idx, rerender) {
+    if (!arr || isNaN(idx) || idx < 0 || idx >= arr.length) return;
+    arr.splice(idx, 1);
+    if (rerender) rerender();
+  }
+
+  function getBlogCsvTags() {
+    var raw = ($("blogTags") && $("blogTags").value) || "";
+    return raw.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  function readBlogPayloadFromForm() {
+    var slug = slugify($("blogSlug").value) || slugify($("blogTitle").value);
+    var rt = parseInt($("blogReadingTimeMinutes").value, 10);
+    return {
+      slug: slug,
+      title: $("blogTitle").value.trim(),
+      summary: $("blogSummary").value.trim(),
+      category: $("blogCategory").value.trim(),
+      tags: getBlogCsvTags(),
+      publishedAt: $("blogPublishedAt") && $("blogPublishedAt").value ? String($("blogPublishedAt").value).slice(0, 10) : "",
+      readingTimeMinutes: isNaN(rt) ? 0 : Math.max(0, rt),
+      authorId: ($("blogAuthorPick") && $("blogAuthorPick").value) || "",
+      author: {
+        name: $("blogAuthorName").value.trim(),
+        role: $("blogAuthorRole").value.trim(),
+        avatarUrl: $("blogAuthorAvatarUrl").value.trim(),
+        bio: $("blogAuthorBio").value.trim(),
+        linkedinUrl: $("blogAuthorLinkedinUrl").value.trim(),
+        moreArticlesUrl: $("blogAuthorMoreArticlesUrl").value.trim(),
+      },
+      coverImage: {
+        url: $("blogCoverImageUrl").value.trim(),
+        alt: $("blogCoverImageAlt").value.trim(),
+      },
+      toc: blogState.toc.map(function (t) {
+        return { id: String(t.id || "").trim(), label: String(t.label || "").trim() };
+      }),
+      body: blogState.body.map(function (s) {
+        return {
+          type: "section",
+          id: String(s.id || "").trim(),
+          number: String(s.number || "").trim(),
+          heading: String(s.heading || "").trim(),
+          blocks: (s.blocks || []).map(normalizeBlogBlock),
+        };
+      }),
+      related: blogState.related.map(function (r) {
+        var ci = r.coverImage || {};
+        return {
+          slug: String(r.slug || "").trim(),
+          title: String(r.title || "").trim(),
+          summary: String(r.summary || "").trim(),
+          category: String(r.category || "").trim(),
+          readingTimeMinutes: Number(r.readingTimeMinutes) || 0,
+          publishedAt: String(r.publishedAt || "").slice(0, 10),
+          coverImage: { url: String(ci.url || "").trim(), alt: String(ci.alt || "").trim() },
+        };
+      }),
+      seo: {
+        metaTitle: $("blogSeoMetaTitle").value.trim(),
+        metaDescription: $("blogSeoMetaDescription").value.trim(),
+      },
+    };
+  }
+
+  function applyBlogDataToForm(data) {
+    data = data || {};
+    blogJsonSyncing = true;
+    try {
+      var isEdit = !!$("blogEditId").value;
+      if (!isEdit) $("blogSlug").value = data.slug || "";
+      $("blogTitle").value = data.title || "";
+      $("blogSummary").value = data.summary || "";
+      $("blogCategory").value = data.category || "";
+      $("blogTags").value = Array.isArray(data.tags) ? data.tags.join(", ") : "";
+      $("blogPublishedAt").value = String(data.publishedAt || "").slice(0, 10);
+      $("blogReadingTimeMinutes").value = String(Number(data.readingTimeMinutes) || 0);
+      var a = data.author || {};
+      $("blogAuthorName").value = a.name || "";
+      $("blogAuthorRole").value = a.role || "";
+      $("blogAuthorAvatarUrl").value = a.avatarUrl || "";
+      $("blogAuthorBio").value = a.bio || "";
+      $("blogAuthorLinkedinUrl").value = a.linkedinUrl || "";
+      $("blogAuthorMoreArticlesUrl").value = a.moreArticlesUrl || "";
+      setBlogAuthorPick(resolveBlogAuthorPickId(data));
+      var ci = data.coverImage || {};
+      $("blogCoverImageUrl").value = ci.url || "";
+      $("blogCoverImageAlt").value = ci.alt || "";
+      var seo = data.seo || {};
+      $("blogSeoMetaTitle").value = seo.metaTitle || "";
+      $("blogSeoMetaDescription").value = seo.metaDescription || "";
+
+      // Map inputs into normalized state, then strip schema placeholders so the
+      // form mirrors the actual data — placeholders live only in the JSON view.
+      blogState.toc = (Array.isArray(data.toc) ? data.toc : [])
+        .map(function (t) {
+          t = t || {};
+          return { id: String(t.id || ""), label: String(t.label || "") };
+        })
+        .filter(function (t) { return !isEmptyBlogTocItem(t); });
+      blogState.body = (Array.isArray(data.body) ? data.body : [])
+        .map(function (s) {
+          s = s || {};
+          var rawBlocks = Array.isArray(s.blocks) ? s.blocks.map(normalizeBlogBlock) : [];
+          return {
+            type: "section",
+            id: String(s.id || ""),
+            number: String(s.number || ""),
+            heading: String(s.heading || ""),
+            blocks: rawBlocks.filter(function (b) { return !isEmptyBlogBlock(b); }),
+          };
+        })
+        .filter(function (s) { return !isEmptyBlogSection(s); });
+      blogState.related = (Array.isArray(data.related) ? data.related : [])
+        .map(function (r) {
+          r = r || {};
+          var ci2 = r.coverImage || {};
+          return {
+            slug: String(r.slug || ""),
+            title: String(r.title || ""),
+            summary: String(r.summary || ""),
+            category: String(r.category || ""),
+            readingTimeMinutes: Number(r.readingTimeMinutes) || 0,
+            publishedAt: String(r.publishedAt || "").slice(0, 10),
+            coverImage: { url: String(ci2.url || ""), alt: String(ci2.alt || "") },
+          };
+        })
+        .filter(function (r) { return !isEmptyBlogRelated(r); });
+
+      renderBlogDynamic();
+    } finally {
+      blogJsonSyncing = false;
+    }
+  }
+
+  function setBlogJsonStatus(kind, msg) {
+    var el = $("blogJsonStatus");
+    if (!el) return;
+    el.textContent = msg || "";
+    el.className = kind === "err" ? "err" : "ok";
+  }
+
+  function writeBlogJsonTextarea(obj) {
+    var ta = $("blogJson");
+    if (!ta) return;
+    blogJsonSyncing = true;
+    try { ta.value = JSON.stringify(obj, null, 2); }
+    finally { blogJsonSyncing = false; }
+  }
+
+  function syncBlogJsonFromForm() {
+    if (!$("blogJson")) return;
+    writeBlogJsonTextarea(buildBlogJsonViewPayload());
+    setBlogJsonStatus("ok", "");
+  }
+
+  function tryApplyBlogJsonToForm() {
+    var ta = $("blogJson");
+    if (!ta) return true;
+    var raw = ta.value;
+    if (!raw.trim()) { setBlogJsonStatus("err", "JSON is empty."); return false; }
+    var data;
+    try { data = JSON.parse(raw); }
+    catch (e) { setBlogJsonStatus("err", "Invalid JSON: " + e.message); return false; }
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      setBlogJsonStatus("err", "JSON must be an object.");
+      return false;
+    }
+    applyBlogDataToForm(data);
+    setBlogJsonStatus("ok", "");
+    return true;
+  }
+
+  function onBlogFieldInput() {
+    if (blogJsonSyncing) return;
+    blogLastEditedSide = "form";
+    if (blogJsonSyncTimer) clearTimeout(blogJsonSyncTimer);
+    blogJsonSyncTimer = setTimeout(function () { blogJsonSyncTimer = null; syncBlogJsonFromForm(); }, 150);
+  }
+
+  function onBlogJsonInput() {
+    if (blogJsonSyncing) return;
+    blogLastEditedSide = "json";
+    if (blogJsonParseTimer) clearTimeout(blogJsonParseTimer);
+    blogJsonParseTimer = setTimeout(function () { blogJsonParseTimer = null; tryApplyBlogJsonToForm(); }, 200);
+  }
+
+  function flushBlogPendingSync() {
+    if (blogJsonSyncTimer) { clearTimeout(blogJsonSyncTimer); blogJsonSyncTimer = null; }
+    if (blogJsonParseTimer) { clearTimeout(blogJsonParseTimer); blogJsonParseTimer = null; }
+  }
+
+  function setBlogModalMode(isNew, isDraft) {
+    var t = $("blogModalTitle"), d = $("blogModalDesc");
+    if (!t) return;
+    if (isNew) {
+      t.textContent = "New blog post";
+      if (d) d.textContent = "Save as a draft to work in private, or publish when it\u2019s ready for the site.";
+      return;
+    }
+    t.textContent = "Edit blog post";
+    if (d) d.textContent = isDraft
+      ? "This blog post is a draft \u2014 not visible on the public site until you save & publish."
+      : "This blog post is live. Use Unpublish to hide it, or Save & publish to update.";
   }
 
   function syncBlogButtons() {
@@ -964,22 +1777,149 @@
     if (unpub && draft) { var live = !!editId && blogModalDocPublished; unpub.hidden = !live; draft.hidden = live; }
   }
 
+  // ─── Dynamic event delegation ─────────────────────────────
+  function setupBlogDelegation() {
+    if (blogDelegationWired) return;
+    var form = $("blogForm"); if (!form) return;
+    blogDelegationWired = true;
+
+    form.addEventListener("input", function (e) {
+      var t = e.target; if (!t || !t.matches) return;
+      if (t.matches("[data-blog-toc-field]")) {
+        var i = parseInt(t.getAttribute("data-t-idx"), 10);
+        var f = t.getAttribute("data-blog-toc-field");
+        if (!isNaN(i) && blogState.toc[i]) blogState.toc[i][f] = t.value;
+      } else if (t.matches("[data-blog-section-field]")) {
+        var si = parseInt(t.getAttribute("data-s-idx"), 10);
+        var sf = t.getAttribute("data-blog-section-field");
+        if (!isNaN(si) && blogState.body[si]) blogState.body[si][sf] = t.value;
+      } else if (t.matches("[data-blog-block-field]")) {
+        var bs = parseInt(t.getAttribute("data-s-idx"), 10);
+        var bb = parseInt(t.getAttribute("data-b-idx"), 10);
+        var bf = t.getAttribute("data-blog-block-field");
+        var sec = blogState.body[bs]; if (!sec) return;
+        var blk = sec.blocks && sec.blocks[bb]; if (!blk) return;
+        if (bf === "items") {
+          blk.items = t.value.split(/\n/);
+        } else if (bf === "style") {
+          blk.style = t.value === "number" ? "number" : "bullet";
+        } else {
+          blk[bf] = t.value;
+        }
+      } else if (t.matches("[data-blog-related-field]")) {
+        var ri = parseInt(t.getAttribute("data-r-idx"), 10);
+        var rf = t.getAttribute("data-blog-related-field");
+        var rel = blogState.related[ri]; if (!rel) return;
+        if (rf === "coverImage.url") {
+          rel.coverImage = rel.coverImage || { url: "", alt: "" };
+          rel.coverImage.url = t.value;
+        } else if (rf === "coverImage.alt") {
+          rel.coverImage = rel.coverImage || { url: "", alt: "" };
+          rel.coverImage.alt = t.value;
+        } else if (rf === "readingTimeMinutes") {
+          rel.readingTimeMinutes = Number(t.value) || 0;
+        } else {
+          rel[rf] = t.value;
+        }
+      }
+    });
+
+    form.addEventListener("change", function (e) {
+      var t = e.target; if (!t || !t.matches) return;
+      if (t.matches("[data-blog-block-type]")) {
+        var bs = parseInt(t.getAttribute("data-s-idx"), 10);
+        var bb = parseInt(t.getAttribute("data-b-idx"), 10);
+        var sec = blogState.body[bs]; if (!sec) return;
+        sec.blocks[bb] = makeEmptyBlogBlock(t.value);
+        renderBlogBodyList();
+        onBlogFieldInput();
+      }
+    });
+
+    form.addEventListener("click", function (e) {
+      var t = e.target; if (!t || !t.matches) return;
+
+      if (t.matches("[data-blog-add]")) {
+        var kind = t.getAttribute("data-blog-add");
+        if (kind === "toc") { blogState.toc.push(makeEmptyBlogTocItem()); renderBlogTocList(); }
+        else if (kind === "section") { blogState.body.push(makeEmptyBlogSection()); renderBlogBodyList(); }
+        else if (kind === "related") { blogState.related.push(makeEmptyBlogRelated()); renderBlogRelatedList(); }
+        onBlogFieldInput();
+        return;
+      }
+
+      if (!t.matches("[data-blog-action]")) return;
+      var action = t.getAttribute("data-blog-action");
+      var si = parseInt(t.getAttribute("data-s-idx"), 10);
+      var bi = parseInt(t.getAttribute("data-b-idx"), 10);
+      var ti = parseInt(t.getAttribute("data-t-idx"), 10);
+      var ri = parseInt(t.getAttribute("data-r-idx"), 10);
+
+      if (action === "toc-up") moveBlogArrayItem(blogState.toc, ti, -1, renderBlogTocList);
+      else if (action === "toc-down") moveBlogArrayItem(blogState.toc, ti, 1, renderBlogTocList);
+      else if (action === "toc-remove") removeBlogArrayItem(blogState.toc, ti, renderBlogTocList);
+      else if (action === "section-up") moveBlogArrayItem(blogState.body, si, -1, renderBlogBodyList);
+      else if (action === "section-down") moveBlogArrayItem(blogState.body, si, 1, renderBlogBodyList);
+      else if (action === "section-remove") removeBlogArrayItem(blogState.body, si, renderBlogBodyList);
+      else if (action === "block-add") {
+        var sec = blogState.body[si]; if (!sec) return;
+        sec.blocks = sec.blocks || [];
+        sec.blocks.push(makeEmptyBlogBlock("paragraph"));
+        renderBlogBodyList();
+      } else if (action === "block-up") {
+        var sec2 = blogState.body[si]; if (!sec2) return;
+        moveBlogArrayItem(sec2.blocks, bi, -1, renderBlogBodyList);
+      } else if (action === "block-down") {
+        var sec3 = blogState.body[si]; if (!sec3) return;
+        moveBlogArrayItem(sec3.blocks, bi, 1, renderBlogBodyList);
+      } else if (action === "block-remove") {
+        var sec4 = blogState.body[si]; if (!sec4) return;
+        removeBlogArrayItem(sec4.blocks, bi, renderBlogBodyList);
+      } else if (action === "rel-up") moveBlogArrayItem(blogState.related, ri, -1, renderBlogRelatedList);
+      else if (action === "rel-down") moveBlogArrayItem(blogState.related, ri, 1, renderBlogRelatedList);
+      else if (action === "rel-remove") removeBlogArrayItem(blogState.related, ri, renderBlogRelatedList);
+      else return;
+
+      onBlogFieldInput();
+    });
+  }
+
   function openNewBlogModal() {
+    setupBlogDelegation();
     blogModalDocPublished = false;
-    fillBlogForm({}, "");
+    blogOriginalData = JSON.parse(JSON.stringify(EMPTY_BLOG_TEMPLATE));
+    $("blogEditId").value = "";
     $("blogSlug").readOnly = false;
-    $("blogModalTitle").textContent = "New blog post";
+    applyBlogDataToForm(EMPTY_BLOG_TEMPLATE);
+    setBlogModalMode(true, true);
     syncBlogButtons();
+    flushBlogPendingSync();
+    writeBlogJsonTextarea(buildBlogJsonViewPayload());
+    setBlogJsonStatus("ok", "");
+    blogLastEditedSide = "form";
+    var cf = $("blogCoverFile"); if (cf) cf.value = "";
+    var af = $("blogAuthorAvatarFile"); if (af) af.value = "";
     openModal("blogModal");
     $("blogSaveStatus").textContent = "";
     setTimeout(function () { $("blogTitle").focus(); }, 0);
   }
 
   function openEditBlogModal(data, docId) {
+    setupBlogDelegation();
     blogModalDocPublished = !!data.published;
-    fillBlogForm(data, docId);
-    $("blogModalTitle").textContent = "Edit blog post";
+    blogOriginalData = JSON.parse(JSON.stringify(data || {}));
+    $("blogEditId").value = docId;
+    $("blogSlug").value = data.slug || docId || "";
+    $("blogSlug").readOnly = true;
+    applyBlogDataToForm(data);
+    setBlogModalMode(false, !data.published);
     syncBlogButtons();
+    flushBlogPendingSync();
+    writeBlogJsonTextarea(buildBlogJsonViewPayload());
+    setBlogJsonStatus("ok", "");
+    blogLastEditedSide = "form";
+    var cf = $("blogCoverFile"); if (cf) cf.value = "";
+    var af = $("blogAuthorAvatarFile"); if (af) af.value = "";
     openModal("blogModal");
     $("blogSaveStatus").textContent = "";
     setTimeout(function () { $("blogTitle").focus(); }, 0);
@@ -988,15 +1928,34 @@
   function buildBlogCard(doc, data, onEdit) {
     var card = document.createElement("article"); card.className = "project-card";
     var thumb = document.createElement("div"); thumb.className = "project-card-thumb";
-    if (data.coverImageUrl) { var img = document.createElement("img"); img.src = data.coverImageUrl; img.alt = ""; img.loading = "lazy"; thumb.appendChild(img); }
+    var coverUrl = (data.coverImage && data.coverImage.url) || data.coverImageUrl || "";
+    if (coverUrl) {
+      var img = document.createElement("img");
+      img.src = coverUrl; img.alt = ""; img.loading = "lazy";
+      thumb.appendChild(img);
+    }
     var body = document.createElement("div"); body.className = "project-card-body";
-    var h3 = document.createElement("h3"); h3.className = "project-card-title"; h3.textContent = data.title || doc.id;
-    var meta = document.createElement("div"); meta.className = "project-card-meta"; meta.textContent = (data.author || "") + (data.date ? "  \u00b7  " + data.date : "");
-    var sum = document.createElement("p"); sum.className = "project-card-summary"; sum.textContent = snippet(data.summary, 200);
+    var h3 = document.createElement("h3"); h3.className = "project-card-title";
+    h3.textContent = data.title || doc.id;
+    var authorName = (data.author && typeof data.author === "object" && data.author.name) ||
+      (typeof data.author === "string" ? data.author : "");
+    var date = data.publishedAt || data.date || "";
+    var meta = document.createElement("div"); meta.className = "project-card-meta";
+    meta.textContent = (authorName || "") + ((authorName && date) ? "  \u00b7  " : "") + (date || "");
+    var sum = document.createElement("p"); sum.className = "project-card-summary";
+    sum.textContent = snippet(data.summary, 200);
     var btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Edit"; btn.onclick = onEdit;
     body.appendChild(h3); body.appendChild(meta); body.appendChild(sum); body.appendChild(btn);
     card.appendChild(thumb); card.appendChild(body);
     return card;
+  }
+
+  function blogSortKey(d) {
+    var raw = d.publishedAt || d.date;
+    if (!raw) return 0;
+    if (typeof raw === "object" && typeof raw.toMillis === "function") return raw.toMillis();
+    var dt = raw instanceof Date ? raw : new Date(raw);
+    return isNaN(dt.getTime()) ? 0 : dt.getTime();
   }
 
   async function refreshBlogPosts() {
@@ -1004,13 +1963,22 @@
     var pubEmpty = $("blogPubEmpty"), draftEmpty = $("blogDraftEmpty");
     if (listPub) listPub.innerHTML = "";
     if (listDraft) listDraft.innerHTML = "";
-    var snap = await db.collection("blog_posts").orderBy("date", "desc").get();
+    var snap = await db.collection("blog_posts").get();
     var published = [], drafts = [];
-    snap.forEach(function (doc) { var d = doc.data(); (d.published ? published : drafts).push({ doc: doc, d: d }); });
+    snap.forEach(function (doc) {
+      var d = doc.data();
+      (d.published ? published : drafts).push({ doc: doc, d: d });
+    });
+    published.sort(function (a, b) { return blogSortKey(b.d) - blogSortKey(a.d); });
+    drafts.sort(function (a, b) { return blogSortKey(b.d) - blogSortKey(a.d); });
     if (pubEmpty) pubEmpty.hidden = published.length > 0;
     if (draftEmpty) draftEmpty.hidden = drafts.length > 0;
-    published.forEach(function (r) { if (listPub) listPub.appendChild(buildBlogCard(r.doc, r.d, function () { openEditBlogModal(r.d, r.doc.id); })); });
-    drafts.forEach(function (r) { if (listDraft) listDraft.appendChild(buildBlogCard(r.doc, r.d, function () { openEditBlogModal(r.d, r.doc.id); })); });
+    published.forEach(function (r) {
+      if (listPub) listPub.appendChild(buildBlogCard(r.doc, r.d, function () { openEditBlogModal(r.d, r.doc.id); }));
+    });
+    drafts.forEach(function (r) {
+      if (listDraft) listDraft.appendChild(buildBlogCard(r.doc, r.d, function () { openEditBlogModal(r.d, r.doc.id); }));
+    });
   }
 
   async function uploadBlogCover(ev) {
@@ -1019,34 +1987,150 @@
     var slug = slugify($("blogSlug").value) || "blog-" + Date.now();
     var path = "blog/" + slug + "/cover-" + Date.now() + "-" + file.name.replace(/\s/g, "_");
     $("blogUploadStatus").textContent = "Uploading\u2026";
-    try { var ref = storage.ref(path); await ref.put(file); $("blogCoverImageUrl").value = await ref.getDownloadURL(); $("blogUploadStatus").textContent = "Uploaded."; }
-    catch (e) { $("blogUploadStatus").textContent = "Upload failed."; }
+    try {
+      var ref = storage.ref(path);
+      await ref.put(file);
+      $("blogCoverImageUrl").value = await ref.getDownloadURL();
+      $("blogUploadStatus").textContent = "Uploaded.";
+      onBlogFieldInput();
+    } catch (e) {
+      console.error("blog cover upload error", e);
+      $("blogUploadStatus").textContent = "Upload failed.";
+    }
+  }
+
+  async function uploadBlogAuthorAvatar(ev) {
+    var file = ev.target.files && ev.target.files[0];
+    if (!file || !auth.currentUser) return;
+    var slug = slugify($("blogSlug").value) || "blog-" + Date.now();
+    var path = "blog/" + slug + "/author-" + Date.now() + "-" + file.name.replace(/\s/g, "_");
+    $("blogAuthorUploadStatus").textContent = "Uploading\u2026";
+    try {
+      var ref = storage.ref(path);
+      await ref.put(file);
+      $("blogAuthorAvatarUrl").value = await ref.getDownloadURL();
+      $("blogAuthorUploadStatus").textContent = "Uploaded.";
+      onBlogFieldInput();
+    } catch (e) {
+      console.error("blog author avatar upload error", e);
+      $("blogAuthorUploadStatus").textContent = "Upload failed.";
+    }
+  }
+
+  function validateBlogPayload(p) {
+    if (!p.title) return "Title is required.";
+    if (!p.slug) return "Set a URL slug.";
+    if (!slugPatternOk(p.slug)) return "Slug must use lowercase letters, numbers, and single hyphens only.";
+    for (var i = 0; i < (p.body || []).length; i++) {
+      var s = p.body[i];
+      if (!s.id) return "Section " + (i + 1) + " is missing an ID (anchor).";
+      if (!s.heading) return "Section " + (i + 1) + " is missing a heading.";
+    }
+    for (var j = 0; j < (p.related || []).length; j++) {
+      var r = p.related[j];
+      if (!r.slug || !r.title) return "Related card " + (j + 1) + " needs a slug and a title.";
+    }
+    return null;
   }
 
   async function saveBlogPost(published) {
-    $("blogSaveStatus").textContent = ""; $("blogSaveStatus").className = "ok";
+    $("blogSaveStatus").textContent = "";
+    $("blogSaveStatus").className = "ok";
+
+    flushBlogPendingSync();
+    if (blogLastEditedSide === "json") {
+      if (!tryApplyBlogJsonToForm()) {
+        blogPendingSavePublished = published;
+        openModal("blogJsonErrorModal");
+        return;
+      }
+    } else {
+      syncBlogJsonFromForm();
+    }
+
     var form = $("blogForm"); if (form && !form.reportValidity()) return;
-    var payload = readBlogForm(published);
-    if (!payload.title) { $("blogSaveStatus").textContent = "Title is required."; $("blogSaveStatus").className = "err"; return; }
-    if (!payload.slug) { $("blogSaveStatus").textContent = "Set a URL slug."; $("blogSaveStatus").className = "err"; return; }
-    if (!slugPatternOk(payload.slug)) { $("blogSaveStatus").textContent = "Slug must use lowercase letters, numbers, and single hyphens only."; $("blogSaveStatus").className = "err"; return; }
-    var editId = $("blogEditId").value, docId = editId || payload.slug;
+    // Strip any schema placeholders that exist only for the JSON-view documentation.
+    var payload = stripBlogPlaceholders(readBlogPayloadFromForm());
+
+    var err = validateBlogPayload(payload);
+    if (err) { $("blogSaveStatus").textContent = err; $("blogSaveStatus").className = "err"; return; }
+
+    if (!payload.toc.length && payload.body && payload.body.length) {
+      payload.toc = payload.body
+        .filter(function (s) { return s.id && s.heading; })
+        .map(function (s) { return { id: s.id, label: s.heading }; });
+    }
+    payload.published = !!published;
+
+    var editId = $("blogEditId").value;
+    var docId = editId || payload.slug;
+    var wasLive = blogModalDocPublished;
     try {
-      await db.collection("blog_posts").doc(docId).set({ ...payload, slug: payload.slug, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-      blogModalDocPublished = published;
-      $("blogSaveStatus").textContent = published ? "Saved and published." : "Draft saved.";
-      $("blogEditId").value = docId; $("blogSlug").readOnly = true;
-      $("blogModalTitle").textContent = "Edit blog post";
+      // merge:false replaces the document with the new schema (migrate-now).
+      await db.collection("blog_posts").doc(docId).set(
+        Object.assign({}, payload, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }),
+        { merge: false }
+      );
+      blogModalDocPublished = !!published;
+      $("blogSaveStatus").textContent = published
+        ? "Saved and published."
+        : wasLive ? "Unpublished \u2014 saved as draft." : "Draft saved.";
+      $("blogEditId").value = docId;
+      $("blogSlug").readOnly = true;
+      setBlogModalMode(false, !published);
       syncBlogButtons();
+      writeBlogJsonTextarea(buildBlogJsonViewPayload());
+      blogOriginalData = JSON.parse(JSON.stringify(payload));
       await refreshBlogPosts();
-    } catch (e) { console.error(e); $("blogSaveStatus").textContent = "Save failed: " + (e.message || e); $("blogSaveStatus").className = "err"; }
+    } catch (e) {
+      console.error(e);
+      $("blogSaveStatus").textContent = "Save failed: " + (e.message || e);
+      $("blogSaveStatus").className = "err";
+    }
   }
 
   async function deleteBlogPost() {
     var editId = $("blogEditId").value; if (!editId) return;
     if (!confirm('Delete blog post "' + ($("blogTitle").value.trim() || editId) + '" permanently?')) return;
-    try { await db.collection("blog_posts").doc(editId).delete(); closeModal("blogModal"); await refreshBlogPosts(); }
-    catch (e) { $("blogSaveStatus").textContent = "Delete failed: " + (e.message || e); $("blogSaveStatus").className = "err"; }
+    try {
+      await db.collection("blog_posts").doc(editId).delete();
+      closeModal("blogModal");
+      await refreshBlogPosts();
+    } catch (e) {
+      $("blogSaveStatus").textContent = "Delete failed: " + (e.message || e);
+      $("blogSaveStatus").className = "err";
+    }
+  }
+
+  // ─── Blog JSON-error modal actions ───
+  function onBlogJsonErrFix() {
+    closeModal("blogJsonErrorModal");
+    flushBlogPendingSync();
+    syncBlogJsonFromForm();
+    blogLastEditedSide = "form";
+    var p = blogPendingSavePublished;
+    blogPendingSavePublished = null;
+    if (p !== null) saveBlogPost(!!p);
+  }
+
+  function onBlogJsonErrDiscard() {
+    closeModal("blogJsonErrorModal");
+    flushBlogPendingSync();
+    blogPendingSavePublished = null;
+    var orig = blogOriginalData || EMPTY_BLOG_TEMPLATE;
+    var editId = $("blogEditId").value || "";
+    applyBlogDataToForm(orig);
+    if (editId) $("blogSlug").readOnly = true;
+    writeBlogJsonTextarea(buildBlogJsonViewPayload());
+    setBlogJsonStatus("ok", "");
+    blogLastEditedSide = "form";
+    closeModal("blogModal");
+  }
+
+  function onBlogJsonErrKeep() {
+    closeModal("blogJsonErrorModal");
+    blogPendingSavePublished = null;
+    setTimeout(function () { var ta = $("blogJson"); if (ta) ta.focus(); }, 0);
   }
 
   // ═══════════════════════════════════
@@ -1081,14 +2165,17 @@
   }
 
   async function signOut() {
-    closeModal("projectModal"); closeModal("reviewModal"); closeModal("companyModal"); closeModal("blogModal");
+    closeModal("projectModal"); closeModal("projectJsonErrorModal");
+    closeModal("reviewModal"); closeModal("companyModal");
+    closeModal("authorModal");
+    closeModal("blogModal"); closeModal("blogJsonErrorModal");
     await auth.signOut();
     show($("loginPanel"), true); show($("firstSetupPanel"), false); show($("adminPanel"), false);
   }
 
   async function refreshAll() {
     await refreshCompanies();
-    await Promise.all([refreshList(), refreshReviews(), refreshBlogPosts()]);
+    await Promise.all([refreshAuthors(), refreshList(), refreshReviews(), refreshBlogPosts()]);
   }
 
   // ═══════════════════════════════════
@@ -1161,26 +2248,75 @@
     var rm = $("reviewModal");
     if (rm) rm.addEventListener("click", function (e) { if (e.target === rm) closeModal("reviewModal"); });
 
+    // Blog authors
+    $("newAuthorBtn").addEventListener("click", openNewAuthorModal);
+    $("btnAuthorSave").addEventListener("click", saveAuthor);
+    $("btnAuthorCancel").addEventListener("click", function () { closeModal("authorModal"); });
+    $("authorModalCloseBtn").addEventListener("click", function () { closeModal("authorModal"); });
+    $("btnDeleteAuthor").addEventListener("click", deleteAuthor);
+    $("authorAvatarFile").addEventListener("change", uploadAuthorAvatar);
+    $("authorForm").addEventListener("submit", function (ev) { ev.preventDefault(); });
+    var am = $("authorModal");
+    if (am) am.addEventListener("click", function (e) { if (e.target === am) closeModal("authorModal"); });
+
     // Blog posts
     $("newBlogBtn").addEventListener("click", openNewBlogModal);
+    var blogAuthorPick = $("blogAuthorPick");
+    if (blogAuthorPick) blogAuthorPick.addEventListener("change", onBlogAuthorPickChange);
     $("btnBlogSaveDraft").addEventListener("click", function () { saveBlogPost(false); });
     $("btnBlogSavePublish").addEventListener("click", function () { saveBlogPost(true); });
     $("btnBlogUnpublish").addEventListener("click", function () { saveBlogPost(false); });
     $("btnDeleteBlog").addEventListener("click", deleteBlogPost);
-    $("btnBlogCancel").addEventListener("click", function () { closeModal("blogModal"); });
-    $("blogModalCloseBtn").addEventListener("click", function () { closeModal("blogModal"); });
+    function closeBlogModalCleanup() {
+      flushBlogPendingSync();
+      blogPendingSavePublished = null;
+      closeModal("blogJsonErrorModal");
+      closeModal("blogModal");
+    }
+    $("btnBlogCancel").addEventListener("click", closeBlogModalCleanup);
+    $("blogModalCloseBtn").addEventListener("click", closeBlogModalCleanup);
     $("blogCoverFile").addEventListener("change", uploadBlogCover);
-    $("blogSlugAuto").addEventListener("click", function () { $("blogSlug").value = slugify($("blogTitle").value); });
+    $("blogAuthorAvatarFile").addEventListener("change", uploadBlogAuthorAvatar);
+    $("blogSlugAuto").addEventListener("click", function () {
+      $("blogSlug").value = slugify($("blogTitle").value);
+      onBlogFieldInput();
+    });
     $("blogForm").addEventListener("submit", function (ev) { ev.preventDefault(); });
     var bm = $("blogModal");
-    if (bm) bm.addEventListener("click", function (e) { if (e.target === bm) closeModal("blogModal"); });
+    if (bm) bm.addEventListener("click", function (e) { if (e.target === bm) closeBlogModalCleanup(); });
+
+    // Wire blog dynamic-list delegation now so events work whenever the modal opens.
+    setupBlogDelegation();
+
+    // Form ↔ JSON sync for the blog modal (mirrors the project modal pattern).
+    $("blogForm").addEventListener("input", function (e) {
+      if (!e.target) return;
+      var id = e.target.id;
+      if (id === "blogJson" || id === "blogCoverFile" || id === "blogAuthorAvatarFile" || id === "blogAuthorPick") return;
+      if (id && id.indexOf("blogAuthor") === 0) setBlogAuthorPick("");
+      onBlogFieldInput();
+    });
+    $("blogForm").addEventListener("change", function (e) {
+      if (!e.target) return;
+      var id = e.target.id;
+      if (id === "blogJson" || id === "blogCoverFile" || id === "blogAuthorAvatarFile" || id === "blogAuthorPick") return;
+      if (id && id.indexOf("blogAuthor") === 0 && id !== "blogAuthorPick") setBlogAuthorPick("");
+      onBlogFieldInput();
+    });
+    var bj = $("blogJson");
+    if (bj) bj.addEventListener("input", onBlogJsonInput);
+    $("btnBlogJsonErrFix").addEventListener("click", onBlogJsonErrFix);
+    $("btnBlogJsonErrDiscard").addEventListener("click", onBlogJsonErrDiscard);
+    $("btnBlogJsonErrKeep").addEventListener("click", onBlogJsonErrKeep);
 
     // Escape key closes any open modal (top-most first)
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
       var jsonErr = $("projectJsonErrorModal");
       if (jsonErr && !jsonErr.hidden) { closeModal("projectJsonErrorModal"); pendingSavePublished = null; return; }
-      ["companyModal", "projectModal", "reviewModal", "blogModal"].forEach(function (id) {
+      var blogJsonErr = $("blogJsonErrorModal");
+      if (blogJsonErr && !blogJsonErr.hidden) { closeModal("blogJsonErrorModal"); blogPendingSavePublished = null; return; }
+      ["companyModal", "projectModal", "reviewModal", "authorModal", "blogModal"].forEach(function (id) {
         var m = $(id); if (m && !m.hidden) closeModal(id);
       });
     });

@@ -66,6 +66,57 @@
       button.danger { background: transparent; color: #ff8a8a; border: 1px solid #663333; }
       button.danger:hover { background: #2a1515; }
       .admin-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+
+      /* ── Structured editor (blog) ── */
+      .blog-section { margin-top: 22px; padding-top: 16px; border-top: 1px solid #25252f; }
+      .blog-section:first-of-type { margin-top: 8px; padding-top: 0; border-top: 0; }
+      .blog-section-title { margin: 0 0 6px; font-size: 0.78rem; font-weight: 600; color: #9a9aa8; text-transform: uppercase; letter-spacing: 0.08em; }
+      .blog-section-hint { margin: 0 0 8px; font-size: 0.78rem; color: #666; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .grid-2 > label { margin-top: 8px; }
+      @media (max-width: 540px) { .grid-2 { grid-template-columns: 1fr; } }
+      .repeater { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+      .repeater-empty { font-size: 0.82rem; color: #666; font-style: italic; }
+      .repeater-item {
+        position: relative; border: 1px solid #2a2a36; border-radius: 8px;
+        padding: 12px 14px; background: #101018;
+      }
+      .repeater-item.nested { background: #0c0c12; }
+      .repeater-header {
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        margin-bottom: 8px;
+      }
+      .repeater-title {
+        font-family: ui-monospace, monospace; font-size: 0.78rem; color: #8ab4ff;
+        letter-spacing: 0.04em;
+      }
+      .repeater-actions { display: inline-flex; gap: 4px; }
+      .icon-btn-sm {
+        background: #1a1a24; border: 1px solid #333; color: #c9c9d2;
+        border-radius: 6px; padding: 3px 8px; font-size: 0.75rem; line-height: 1; cursor: pointer;
+        min-width: 26px;
+      }
+      .icon-btn-sm:hover { border-color: #555; color: #fff; }
+      .icon-btn-sm.danger { color: #ff8a8a; border-color: #663333; background: transparent; }
+      .icon-btn-sm.danger:hover { background: #2a1515; }
+      .repeater-add {
+        margin-top: 8px; background: #1a1a24; color: #c9c9d2; border: 1px dashed #333;
+        padding: 8px 12px; border-radius: 8px; font-size: 0.85rem;
+      }
+      .repeater-add:hover { border-color: #555; color: #fff; }
+      .block-type-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+      .block-type-row select { flex: 1; max-width: 220px; }
+      .field-label { display: block; font-size: 0.78rem; color: #888; margin-top: 8px; margin-bottom: 4px; }
+      .field-label:first-child { margin-top: 0; }
+      .field-input, .field-textarea, .field-select {
+        width: 100%; box-sizing: border-box;
+        padding: 8px 10px; border-radius: 6px; border: 1px solid #333;
+        background: #14141c; color: inherit; font-size: 0.85rem;
+      }
+      .field-textarea { min-height: 70px; font-family: ui-monospace, monospace; font-size: 12.5px; }
+      .repeater-item.dragging { opacity: 0.45; }
+      .small-upload { font-size: 0.78rem; color: #888; }
+      .small-upload input { font-size: 0.78rem; }
     </style>
     <script src="/js/firebase-config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -75,7 +126,7 @@
   </head>
   <body>
     <h1>Portfolio admin</h1>
-    <p>Manage companies, projects, and reviews. Add a company first, then link projects and reviews to it.</p>
+    <p>Manage companies, projects, reviews, blog authors, and blog posts. Add a company first, then link projects and reviews to it.</p>
 
     <div id="loginPanel">
       <form id="loginForm">
@@ -106,6 +157,7 @@
         <button type="button" id="newCompanyBtn">Add company</button>
         <button type="button" id="newBtn">Add project</button>
         <button type="button" id="newReviewBtn">Add review</button>
+        <button type="button" id="newAuthorBtn">Add author</button>
         <button type="button" id="newBlogBtn">Add blog post</button>
       </div>
 
@@ -136,6 +188,11 @@
       <p class="section-label">Drafts</p>
       <p id="reviewsDraftEmpty" class="empty-list-hint" hidden>No draft reviews.</p>
       <div id="reviewListDrafts" class="project-cards"></div>
+
+      <!-- Blog Authors -->
+      <h2 style="margin-top:48px;font-size:1.1rem">Blog Authors</h2>
+      <p id="authorsEmpty" class="empty-list-hint" hidden>No authors yet. Add authors here, then pick them when creating blog posts.</p>
+      <div id="authorList" class="project-cards"></div>
 
       <!-- Blog Posts -->
       <h2 style="margin-top:48px;font-size:1.1rem">Blog Posts</h2>
@@ -303,30 +360,147 @@
       </div>
     </div>
 
+    <!-- ═══ Blog Author Modal ═══ -->
+    <div id="authorModal" class="modal" hidden aria-hidden="true">
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="authorModalTitle">
+        <div class="modal-header">
+          <div><h2 id="authorModalTitle">New author</h2></div>
+          <button type="button" id="authorModalCloseBtn" class="secondary modal-close" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="authorForm">
+            <input type="hidden" id="authorEditId" />
+            <label>Name * <input type="text" id="authorName" required autocomplete="off" /></label>
+            <label>Role <input type="text" id="authorRole" placeholder="e.g. Design Lead" /></label>
+            <label>Avatar URL <input type="text" id="authorAvatarUrl" placeholder="https://… or /images/…" /></label>
+            <label>Upload avatar (Storage) <input type="file" id="authorAvatarFile" accept="image/*" /></label>
+            <div id="authorUploadStatus" class="ok"></div>
+            <label>Bio <textarea id="authorBio" placeholder="2–3 sentence bio shown in author card."></textarea></label>
+            <div class="grid-2">
+              <label>LinkedIn URL <input type="text" id="authorLinkedinUrl" placeholder="https://www.linkedin.com/in/…" /></label>
+              <label>More articles URL <input type="text" id="authorMoreArticlesUrl" placeholder="/blog or author profile URL" /></label>
+            </div>
+            <div class="row modal-actions">
+              <button type="button" id="btnAuthorCancel" class="secondary">Cancel</button>
+              <button type="button" id="btnAuthorSave">Save author</button>
+            </div>
+            <div class="modal-actions-split">
+              <span></span>
+              <button type="button" id="btnDeleteAuthor" class="danger" hidden>Delete author…</button>
+            </div>
+            <div id="authorSaveStatus" class="ok"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ Blog Post Modal ═══ -->
     <div id="blogModal" class="modal" hidden aria-hidden="true">
-      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="blogModalTitle">
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="blogModalTitle" aria-describedby="blogModalDesc">
         <div class="modal-header">
           <div>
             <h2 id="blogModalTitle">New blog post</h2>
-            <p class="modal-sub">Create or edit a blog article.</p>
+            <p id="blogModalDesc" class="modal-sub">Save as a draft to work in private, or publish when it's ready for the site.</p>
           </div>
           <button type="button" id="blogModalCloseBtn" class="secondary modal-close" aria-label="Close">×</button>
         </div>
         <div class="modal-body">
           <form id="blogForm">
             <input type="hidden" id="blogEditId" />
-            <label>Title * <input type="text" id="blogTitle" required autocomplete="off" /></label>
-            <label>URL slug * <input type="text" id="blogSlug" autocomplete="off" placeholder="Generated from title if left empty" /></label>
-            <button type="button" id="blogSlugAuto" class="secondary">Generate slug from title</button>
-            <label>Category <input type="text" id="blogCategory" placeholder="e.g. Branding, Design, Development" /></label>
-            <label>Summary (shown in cards) <textarea id="blogSummary"></textarea></label>
-            <label>Cover image URL <input type="text" id="blogCoverImageUrl" placeholder="https://… or /images/…" /></label>
-            <label>Upload cover (Storage) <input type="file" id="blogCoverFile" accept="image/*" /></label>
-            <div id="blogUploadStatus" class="ok"></div>
-            <label>Body HTML <textarea id="blogBodyHtml" style="min-height:200px"></textarea></label>
-            <label>Author <input type="text" id="blogAuthor" /></label>
-            <label>Date <input type="date" id="blogDate" /></label>
+
+            <!-- Basic -->
+            <div class="blog-section">
+              <p class="blog-section-title">Article</p>
+              <label>Title * <input type="text" id="blogTitle" required autocomplete="off" placeholder="e.g. The difference between UX &amp; UI — a simple guide" /></label>
+              <p class="blog-section-hint">Tip: text after a dash (—) renders italic. You can also wrap the italic portion in <code>&lt;span class="italic"&gt;…&lt;/span&gt;</code>.</p>
+              <label>URL slug * <input type="text" id="blogSlug" autocomplete="off" placeholder="Generated from title if left empty" /></label>
+              <button type="button" id="blogSlugAuto" class="secondary">Generate slug from title</button>
+              <label>Summary (deck) <textarea id="blogSummary" placeholder="1–2 sentence intro shown below the headline and on cards."></textarea></label>
+              <div class="grid-2">
+                <label>Category <input type="text" id="blogCategory" placeholder="e.g. Design, Engineering, Brand" /></label>
+                <label>Tags (comma-separated) <input type="text" id="blogTags" placeholder="UX, UI, Design" /></label>
+              </div>
+              <div class="grid-2">
+                <label>Published date <input type="date" id="blogPublishedAt" /></label>
+                <label>Reading time (minutes) <input type="number" id="blogReadingTimeMinutes" min="0" step="1" value="0" /></label>
+              </div>
+            </div>
+
+            <!-- Cover image -->
+            <div class="blog-section">
+              <p class="blog-section-title">Cover image (16:9 hero)</p>
+              <label>Image URL <input type="text" id="blogCoverImageUrl" placeholder="https://… or /images/…" /></label>
+              <label>Upload cover (Storage) <input type="file" id="blogCoverFile" accept="image/*" /></label>
+              <div id="blogUploadStatus" class="ok"></div>
+              <label>Alt text <input type="text" id="blogCoverImageAlt" placeholder="Describe the image for accessibility" /></label>
+            </div>
+
+            <!-- Author -->
+            <div class="blog-section">
+              <p class="blog-section-title">Author</p>
+              <label>Choose saved author
+                <select id="blogAuthorPick">
+                  <option value="">— Custom (type below) —</option>
+                </select>
+              </label>
+              <p class="blog-section-hint" style="margin-top:4px">Pick a saved profile to fill the fields, or leave on Custom and enter details manually. Manage profiles under <strong>Blog Authors</strong> on the dashboard.</p>
+              <div class="grid-2">
+                <label>Name <input type="text" id="blogAuthorName" /></label>
+                <label>Role <input type="text" id="blogAuthorRole" placeholder="e.g. Design Lead" /></label>
+              </div>
+              <label>Avatar URL <input type="text" id="blogAuthorAvatarUrl" placeholder="https://… or /images/…" /></label>
+              <label>Upload avatar (Storage) <input type="file" id="blogAuthorAvatarFile" accept="image/*" /></label>
+              <div id="blogAuthorUploadStatus" class="ok"></div>
+              <label>Bio <textarea id="blogAuthorBio" placeholder="2–3 sentence bio shown in author card."></textarea></label>
+              <div class="grid-2">
+                <label>LinkedIn URL <input type="text" id="blogAuthorLinkedinUrl" placeholder="https://www.linkedin.com/in/…" /></label>
+                <label>More articles URL <input type="text" id="blogAuthorMoreArticlesUrl" placeholder="/blog or author profile URL" /></label>
+              </div>
+            </div>
+
+            <!-- TOC -->
+            <div class="blog-section">
+              <p class="blog-section-title">Table of contents</p>
+              <p class="blog-section-hint">Leave empty to auto-generate from body sections. Each entry's <code>id</code> should match a body section's <code>id</code>.</p>
+              <div id="blogTocList" class="repeater"></div>
+              <button type="button" class="repeater-add" data-blog-add="toc">+ Add TOC entry</button>
+            </div>
+
+            <!-- Body -->
+            <div class="blog-section">
+              <p class="blog-section-title">Body — sections &amp; blocks</p>
+              <p class="blog-section-hint">Each section is a numbered chapter (with pink "01" marker). Add blocks within each section.</p>
+              <div id="blogBodyList" class="repeater"></div>
+              <button type="button" class="repeater-add" data-blog-add="section">+ Add section</button>
+            </div>
+
+            <!-- Related -->
+            <div class="blog-section">
+              <p class="blog-section-title">Related articles (Keep reading)</p>
+              <p class="blog-section-hint">Up to 3 cards shown at the bottom of the article.</p>
+              <div id="blogRelatedList" class="repeater"></div>
+              <button type="button" class="repeater-add" data-blog-add="related">+ Add related article</button>
+            </div>
+
+            <!-- SEO -->
+            <div class="blog-section">
+              <p class="blog-section-title">SEO</p>
+              <label>Meta title <input type="text" id="blogSeoMetaTitle" placeholder="Defaults to article title" /></label>
+              <label>Meta description <textarea id="blogSeoMetaDescription" placeholder="Defaults to summary."></textarea></label>
+            </div>
+
+            <!-- JSON view -->
+            <details class="advanced" id="blogJsonWrap" open style="margin-top:18px">
+              <summary>JSON view <span style="color:#666">— edit fields above to update this, or paste JSON here to update the fields. Last edit wins.</span></summary>
+              <p style="margin:10px 0 0; font-size:0.78rem; color:#777; line-height:1.5">
+                Empty arrays (<code>toc</code>, <code>body</code>, <code>related</code>) and empty section blocks show a full schema reference with one example of every item type so you can see the shape. Those empty examples are stripped automatically on save and aren't stored.
+              </p>
+              <label style="margin-top:12px">Blog JSON
+                <textarea id="blogJson" spellcheck="false" autocomplete="off" style="min-height:340px; white-space:pre; tab-size:2; -moz-tab-size:2;"></textarea>
+              </label>
+              <div id="blogJsonStatus" class="ok"></div>
+            </details>
+
             <div class="row modal-actions">
               <button type="button" id="btnBlogCancel" class="secondary">Cancel</button>
               <button type="button" id="btnBlogSaveDraft" class="secondary draft-btn">Save draft</button>
@@ -343,6 +517,34 @@
       </div>
     </div>
 
-    <script src="/admin/admin.js?v=20260512d"></script>
+    <!-- ═══ Blog JSON Error Modal ═══ -->
+    <div id="blogJsonErrorModal" class="modal" hidden aria-hidden="true" style="z-index:1100">
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="blogJsonErrorTitle" style="max-width:480px">
+        <div class="modal-header">
+          <div>
+            <h2 id="blogJsonErrorTitle">JSON is invalid</h2>
+            <p class="modal-sub" id="blogJsonErrorMsg">The JSON view can't be parsed, so the blog post can't be saved.</p>
+          </div>
+        </div>
+        <div class="modal-body">
+          <p style="margin:0 0 16px; font-size:0.88rem; color:#b8b8c4; line-height:1.5">
+            Choose how to continue:
+          </p>
+          <ul style="margin:0 0 8px; padding-left:18px; font-size:0.85rem; color:#9a9aa8; line-height:1.55">
+            <li><strong style="color:#e8e8ec">Discard changes</strong> — revert everything to what was last stored and close the blog post.</li>
+            <li><strong style="color:#e8e8ec">Keep editing</strong> — go back and fix the JSON manually.</li>
+            <li><strong style="color:#e8e8ec">Fix with form fields</strong> — rewrite the JSON from the current form fields and save.</li>
+          </ul>
+          <div class="row modal-actions">
+            <button type="button" id="btnBlogJsonErrDiscard" class="danger">Discard changes</button>
+            <span style="flex:1"></span>
+            <button type="button" id="btnBlogJsonErrKeep" class="secondary">Keep editing</button>
+            <button type="button" id="btnBlogJsonErrFix">Fix with form fields</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/admin/admin.js?v=20260520b"></script>
   </body>
 </html>

@@ -16,13 +16,9 @@
       .replace(/"/g, "&quot;");
   }
 
-  function readMinutes(p) {
-    if (p.readMinutes) return Math.max(1, parseInt(p.readMinutes, 10) || 1) + " min read";
-    if (p.readTime) return esc(p.readTime);
-    var body = String(p.body || p.content || p.excerpt || "");
-    if (!body) return "";
-    var words = body.split(/\s+/).length;
-    var mins = Math.max(1, Math.round(words / 220));
+  function readMinutesText(n) {
+    var mins = parseInt(n, 10);
+    if (!mins || mins < 1) return "";
     return mins + " min read";
   }
 
@@ -36,31 +32,56 @@
     return dt.getDate() + " " + months[dt.getMonth()] + " " + dt.getFullYear();
   }
 
+  // Title rendering mirrors blog-detail: trust author <span class="italic"> if
+  // present, else split on a dash to italicise the trailing phrase.
+  function renderTitleHtml(title) {
+    var t = String(title == null ? "" : title);
+    if (/<span\s+class\s*=\s*["']italic["']/i.test(t)) return t;
+    var sep = / [\u2014\u2013\-] /;
+    var m = t.match(sep);
+    if (m) {
+      var idx = m.index;
+      var prefix = t.slice(0, idx);
+      var suffix = t.slice(idx + m[0].length);
+      if (suffix) {
+        var trailing = /[.!?]$/.test(suffix) ? "" : ".";
+        return esc(prefix) + ': <span class="italic">' + esc(suffix) + trailing + "</span>";
+      }
+    }
+    return esc(t);
+  }
+
+  function coverUrlOf(p) { return (p.coverImage && p.coverImage.url) || ""; }
+  function coverAltOf(p) { return (p.coverImage && p.coverImage.alt) || p.title || ""; }
+  function publishedAtOf(p) { return p.publishedAt || ""; }
+  function readingMinutesOf(p) { return p.readingTimeMinutes; }
+
   function featuredCardHtml(p) {
     var href = "/blog/" + esc(p.slug);
-    var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
-    var title = esc(p.title || "Blog Post");
+    var img = esc(coverUrlOf(p) || "/images/image-placeholder.svg");
+    var alt = esc(coverAltOf(p));
+    var titleHtml = renderTitleHtml(p.title || "Blog Post");
     var summary = esc(p.summary || "");
-    var date = fmtDate(p.date);
+    var date = fmtDate(publishedAtOf(p));
     var category = esc(p.category || "");
-    var read = readMinutes(p);
+    var read = readMinutesText(readingMinutesOf(p));
     var showMetaDotAfterCategory = !!(category && (read || date));
     var showMetaDotAfterRead = !!(read && date);
     return (
       '<a href="' + href + '" class="featured-article" data-reveal>' +
       '<div class="featured-media">' +
-      '<img loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" />' +
+      '<img loading="lazy" decoding="async" src="' + img + '" alt="' + alt + '" />' +
       (category ? '<span class="featured-tag">' + category + "</span>" : "") +
       "</div>" +
       '<div class="featured-body">' +
       '<div class="featured-meta">' +
-      (category ? "<span>— " + category + "</span>" : "") +
-      (showMetaDotAfterCategory ? "<span>·</span>" : "") +
+      (category ? "<span>\u2014 " + category + "</span>" : "") +
+      (showMetaDotAfterCategory ? "<span>\u00b7</span>" : "") +
       (read ? "<span>" + read + "</span>" : "") +
-      (showMetaDotAfterRead ? "<span>·</span>" : "") +
+      (showMetaDotAfterRead ? "<span>\u00b7</span>" : "") +
       (date ? "<span>" + date + "</span>" : "") +
       "</div>" +
-      "<h3>" + title + "</h3>" +
+      "<h3>" + titleHtml + "</h3>" +
       (summary ? "<p>" + summary + "</p>" : "") +
       "</div>" +
       "</a>"
@@ -69,24 +90,25 @@
 
   function postCardHtml(p) {
     var href = "/blog/" + esc(p.slug);
-    var img = esc(p.coverImageUrl || "/images/image-placeholder.svg");
-    var title = esc(p.title || "Blog Post");
+    var img = esc(coverUrlOf(p) || "/images/image-placeholder.svg");
+    var alt = esc(coverAltOf(p));
+    var titleHtml = renderTitleHtml(p.title || "Blog Post");
     var summary = esc(p.summary || "");
-    var date = fmtDate(p.date);
+    var date = fmtDate(publishedAtOf(p));
     var category = esc(p.category || "");
-    var read = readMinutes(p);
+    var read = readMinutesText(readingMinutesOf(p));
     return (
       '<a href="' + href + '" class="post-card" data-reveal>' +
       '<div class="post-media">' +
-      '<img loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" />' +
+      '<img loading="lazy" decoding="async" src="' + img + '" alt="' + alt + '" />' +
       "</div>" +
       '<div class="post-body">' +
       '<div class="post-meta">' +
       (category ? "<span>" + category + "</span>" : "") +
-      (category && read ? "<span>·</span>" : "") +
+      (category && read ? "<span>\u00b7</span>" : "") +
       (read ? "<span>" + read + "</span>" : "") +
       "</div>" +
-      "<h3>" + title + "</h3>" +
+      "<h3>" + titleHtml + "</h3>" +
       (summary ? "<p>" + summary + "</p>" : "") +
       (date ? '<span class="post-date">' + date + "</span>" : "") +
       "</div>" +
@@ -95,7 +117,7 @@
   }
 
   function postDateMs(p) {
-    var d = p.date;
+    var d = publishedAtOf(p);
     if (d && typeof d.toDate === "function") d = d.toDate();
     var dt = d instanceof Date ? d : new Date(d);
     return isNaN(dt.getTime()) ? 0 : dt.getTime();
@@ -245,10 +267,10 @@
     }
     container.innerHTML =
       '<button type="button" class="pg-btn cc-page-prev' + (prevDisabled ? " is-disabled" : "") + '"' +
-      (prevDisabled ? " disabled" : "") + '>← Previous</button>' +
+      (prevDisabled ? " disabled" : "") + '>\u2190 Previous</button>' +
       '<div class="pg-pages">' + pages + "</div>" +
       '<button type="button" class="pg-btn cc-page-next' + (nextDisabled ? " is-disabled" : "") + '"' +
-      (nextDisabled ? " disabled" : "") + '>Next →</button>';
+      (nextDisabled ? " disabled" : "") + '>Next \u2192</button>';
 
     var prev = container.querySelector(".cc-page-prev");
     var next = container.querySelector(".cc-page-next");
@@ -315,7 +337,7 @@
 
     db.collection("blog_posts")
       .where("published", "==", true)
-      .orderBy("date", "desc")
+      .orderBy("publishedAt", "desc")
       .get()
       .then(function (snap) {
         if (snap.empty) {

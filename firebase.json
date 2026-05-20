@@ -63,7 +63,7 @@
       },
       {
         "source": "/blog/**",
-        "destination": "/blog-detail.html"
+        "function": "blogArticle"
       }
     ]
   }
