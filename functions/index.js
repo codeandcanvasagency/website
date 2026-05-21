@@ -2018,19 +2018,26 @@ exports.generateBlogPost = onRequest(
           normalized.coverImage.alt = `Cover image for ${normalized.title}`;
         }
       } catch (err) {
+        const errorMessage = err && err.message ? String(err.message) : "unknown_image_error";
+        const errorDetail = err && err.detail
+          ? String(err.detail)
+          : errorMessage;
         logger.error("generateBlogPost: image generation/upload failed", {
-          message: err.message,
+          errorMessage,
+          errorCode: err && err.code ? String(err.code) : "",
           status: err.status,
-          detail: err.detail,
+          detail: errorDetail,
           body: err.body,
+          stack: err && err.stack ? String(err.stack).slice(0, 3000) : "",
           model: err.model || OPENAI_IMAGE_MODEL,
         });
         // Continue without a cover image so the admin can still review the draft.
         normalized.coverImage.url = "";
         imageError = {
-          message: err.message || "image_failed",
-          detail: err.detail || "",
+          message: errorMessage || "image_failed",
+          detail: errorDetail || "",
           status: err.status || null,
+          code: err && err.code ? String(err.code) : "",
           model: err.model || OPENAI_IMAGE_MODEL,
         };
       }

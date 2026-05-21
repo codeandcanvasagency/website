@@ -35,35 +35,59 @@
     "rewrites": [
       {
         "source": "/api/contact",
-        "function": "contact"
+        "function": {
+          "functionId": "contact",
+          "region": "europe-west2"
+        }
       },
       {
         "source": "/api/newsletter",
-        "function": "newsletter"
+        "function": {
+          "functionId": "newsletter",
+          "region": "europe-west2"
+        }
       },
       {
         "source": "/api/seed-projects",
-        "function": "seedProjects"
+        "function": {
+          "functionId": "seedProjects",
+          "region": "europe-west2"
+        }
       },
       {
         "source": "/api/backfill-company-reviews",
-        "function": "backfillCompanyReviews"
+        "function": {
+          "functionId": "backfillCompanyReviews",
+          "region": "europe-west2"
+        }
       },
       {
         "source": "/api/publish-auto-reviews",
-        "function": "publishAutoReviews"
+        "function": {
+          "functionId": "publishAutoReviews",
+          "region": "europe-west2"
+        }
       },
       {
         "source": "/api/bootstrap-admin",
-        "function": "bootstrapAdmin"
+        "function": {
+          "functionId": "bootstrapAdmin",
+          "region": "europe-west2"
+        }
       },
       {
         "source": "/api/generate-blog-post",
-        "function": "generateBlogPost"
+        "function": {
+          "functionId": "generateBlogPost",
+          "region": "europe-west2"
+        }
       },
       {
         "source": "/sitemap-blog.xml",
-        "function": "sitemap"
+        "function": {
+          "functionId": "sitemap",
+          "region": "europe-west2"
+        }
       },
       {
         "source": "/projects/**",
@@ -71,11 +95,17 @@
       },
       {
         "source": "/blog",
-        "function": "blogIndex"
+        "function": {
+          "functionId": "blogIndex",
+          "region": "europe-west2"
+        }
       },
       {
         "source": "/blog/**",
-        "function": "blogArticle"
+        "function": {
+          "functionId": "blogArticle",
+          "region": "europe-west2"
+        }
       }
     ]
   }

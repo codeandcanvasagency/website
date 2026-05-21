@@ -2506,6 +2506,19 @@ body[data-screen-label="Contact"] .office-map iframe {
   justify-content: flex-end;
 }
 
+.article-cta-mid {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.article-cta-mid .article-cta-actions {
+  justify-content: flex-start;
+}
+
+.article-cta-mid h3 {
+  max-width: 22ch;
+}
+
 .article-final-cta {
   padding: 0 0 var(--section-y);
 }

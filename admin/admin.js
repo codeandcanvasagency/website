@@ -2190,12 +2190,18 @@
     setBlogAiStatus("ok", "");
   }
 
-  function describeBlogAiError(data) {
+  function describeBlogAiError(data, status) {
     var code = (data && data.error) || "unknown";
     var detail = (data && data.detail) || "";
+    var httpStatus = (typeof status === "number" && status > 0)
+      ? status
+      : (data && data.status ? data.status : 0);
     var upstream = data && data.upstreamStatus ? " [HTTP " + data.upstreamStatus + "]" : "";
     var model = data && data.model ? " (model: " + data.model + ")" : "";
     var detailSuffix = detail ? " \u2014 " + detail : "";
+    if (httpStatus === 503 || code === "service_unavailable" || code === "unavailable") {
+      return "AI service is temporarily unavailable. Please try again in a minute." + detailSuffix;
+    }
     switch (code) {
       case "missing_token":
       case "token_expired":
@@ -2225,7 +2231,7 @@
       case "slug_check_failed":
         return "Couldn\u2019t reserve a unique slug. Try again.";
       default:
-        return "Generation failed (" + code + ")" + detailSuffix;
+        return "Generation failed (" + code + ")" + (httpStatus ? " [HTTP " + httpStatus + "]" : "") + detailSuffix;
     }
   }
 
@@ -2270,7 +2276,7 @@
       });
       var data = await resp.json().catch(function () { return {}; });
       if (!resp.ok || !data.ok) {
-        setBlogAiStatus("err", describeBlogAiError(data));
+        setBlogAiStatus("err", describeBlogAiError(data, resp.status));
         return;
       }
       if (!data.payload || typeof data.payload !== "object") {
