@@ -211,16 +211,33 @@
       }
       if (prev && !prev.__ccCarouselBound) {
         prev.__ccCarouselBound = true;
-        prev.addEventListener("click", function () { track.scrollBy({ left: -step(), behavior: "smooth" }); });
+        prev.addEventListener("click", function () {
+          if (typeof track.__ccCarouselGoRelative === "function") {
+            track.__ccCarouselGoRelative(-1);
+            return;
+          }
+          track.scrollBy({ left: -step(), behavior: "smooth" });
+        });
       }
       if (next && !next.__ccCarouselBound) {
         next.__ccCarouselBound = true;
-        next.addEventListener("click", function () { track.scrollBy({ left: step(), behavior: "smooth" }); });
+        next.addEventListener("click", function () {
+          if (typeof track.__ccCarouselGoRelative === "function") {
+            track.__ccCarouselGoRelative(1);
+            return;
+          }
+          track.scrollBy({ left: step(), behavior: "smooth" });
+        });
       }
 
-      // Home latest-projects + blog carousels: autoplay one card at a time on mobile.
-      var isAutoTrack = track.id === "latestTrack" || track.id === "blogTrack";
-      if (!isAutoTrack || track.__ccLatestAutoBound) return;
+      // Home carousels autoplay one card at a time; latest projects runs on desktop too.
+      var autoplaysOnDesktop = track.id === "latestTrack";
+      var isAutoTrack = autoplaysOnDesktop || track.id === "blogTrack";
+      if (!isAutoTrack) return;
+      if (track.__ccLatestAutoBound) {
+        if (typeof track.__ccCarouselAutoStart === "function") track.__ccCarouselAutoStart();
+        return;
+      }
       track.__ccLatestAutoBound = true;
 
       var autoTimer = null;
@@ -230,8 +247,48 @@
         return window.matchMedia("(max-width: 640px)").matches;
       }
 
+      function shouldAutoplay() {
+        return autoplaysOnDesktop || isMobileViewport();
+      }
+
       function cards() {
         return Array.prototype.slice.call(track.querySelectorAll(".carousel-card"));
+      }
+
+      function originalCards() {
+        return cards().filter(function (el) {
+          return !el.hasAttribute("data-carousel-clone");
+        });
+      }
+
+      function prepareClone(card, placement) {
+        card.setAttribute("data-carousel-clone", placement);
+        card.setAttribute("aria-hidden", "true");
+        card.setAttribute("tabindex", "-1");
+        card.querySelectorAll("a, button, input, select, textarea, [tabindex]").forEach(function (el) {
+          el.setAttribute("tabindex", "-1");
+        });
+        return card;
+      }
+
+      function ensureLoopClones() {
+        var existingClones = track.querySelectorAll("[data-carousel-clone]");
+        if (existingClones.length) return originalCards().length;
+
+        var originals = originalCards();
+        if (originals.length < 2) return originals.length;
+
+        var before = document.createDocumentFragment();
+        var after = document.createDocumentFragment();
+        originals.forEach(function (card) {
+          before.appendChild(prepareClone(card.cloneNode(true), "before"));
+          after.appendChild(prepareClone(card.cloneNode(true), "after"));
+        });
+
+        track.insertBefore(before, track.firstChild);
+        track.appendChild(after);
+        track.scrollLeft = originals[0].offsetLeft;
+        return originals.length;
       }
 
       function currentIndex(cardEls) {
@@ -249,12 +306,39 @@
         return idx;
       }
 
-      function goToIndex(idx) {
+      function normalizeLoopPosition() {
+        var count = originalCards().length;
+        if (count < 2) return;
+
         var cardEls = cards();
-        if (!cardEls.length) return;
-        var safe = ((idx % cardEls.length) + cardEls.length) % cardEls.length;
-        track.scrollTo({ left: cardEls[safe].offsetLeft, behavior: "smooth" });
+        if (cardEls.length < count * 3) return;
+
+        var idx = currentIndex(cardEls);
+        var target = null;
+        if (idx < count) {
+          target = idx + count;
+        } else if (idx >= count * 2) {
+          target = idx - count;
+        }
+
+        if (target !== null && cardEls[target]) {
+          track.scrollLeft = cardEls[target].offsetLeft;
+        }
       }
+
+      function goRelative(delta) {
+        var count = ensureLoopClones();
+        if (count < 2) return;
+
+        normalizeLoopPosition();
+        var cardEls = cards();
+        var target = currentIndex(cardEls) + delta;
+        if (!cardEls[target]) return;
+
+        track.scrollTo({ left: cardEls[target].offsetLeft, behavior: "smooth" });
+        window.setTimeout(normalizeLoopPosition, 650);
+      }
+      track.__ccCarouselGoRelative = goRelative;
 
       function stopAutoplay() {
         if (autoTimer) {
@@ -265,19 +349,20 @@
 
       function startAutoplay() {
         stopAutoplay();
-        if (!isMobileViewport()) return;
+        ensureLoopClones();
+        normalizeLoopPosition();
+        if (!shouldAutoplay()) return;
         if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-        if (cards().length < 2) return;
+        if (originalCards().length < 2) return;
         autoTimer = setInterval(function () {
-          var cardEls = cards();
-          if (!cardEls.length) return;
-          goToIndex(currentIndex(cardEls) + 1);
+          goRelative(1);
         }, AUTO_DELAY_MS);
       }
+      track.__ccCarouselAutoStart = startAutoplay;
 
       function restartAutoplay() {
         stopAutoplay();
-        if (isMobileViewport()) {
+        if (shouldAutoplay()) {
           window.setTimeout(startAutoplay, AUTO_DELAY_MS);
         }
       }
@@ -285,6 +370,10 @@
       track.addEventListener("touchstart", restartAutoplay, { passive: true });
       track.addEventListener("pointerdown", restartAutoplay);
       track.addEventListener("wheel", restartAutoplay, { passive: true });
+      track.addEventListener("scroll", function () {
+        window.clearTimeout(track.__ccLoopNormalizeTimer);
+        track.__ccLoopNormalizeTimer = window.setTimeout(normalizeLoopPosition, 120);
+      }, { passive: true });
       if (prev) prev.addEventListener("click", restartAutoplay);
       if (next) next.addEventListener("click", restartAutoplay);
 
@@ -293,8 +382,7 @@
         else startAutoplay();
       });
       window.addEventListener("resize", function () {
-        if (!isMobileViewport()) stopAutoplay();
-        else startAutoplay();
+        startAutoplay();
       });
 
       startAutoplay();
