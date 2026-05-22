@@ -323,7 +323,7 @@ function corsHeaders(req) {
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type",
     Vary: "Origin",
   };
 }
@@ -1679,7 +1679,7 @@ function parseOpenAiErrorBody(text) {
   return { message: message || text.slice(0, 400), body: text.slice(0, 1500) };
 }
 
-async function callOpenAiResponsesJson({ apiKey, instructions, input, model }) {
+async function callOpenAiResponsesJson({ apiKey, instructions, input, model, timeoutMs }) {
   const requestModel = model || OPENAI_TEXT_MODEL;
   const requestBody = {
     model: requestModel,
@@ -1692,14 +1692,31 @@ async function callOpenAiResponsesJson({ apiKey, instructions, input, model }) {
     reasoning: { effort: "low" },
     store: false,
   };
-  const resp = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(), Math.max(1000, Number(timeoutMs) || 45000));
+  let resp;
+  try {
+    resp = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeoutHandle);
+    if (err && err.name === "AbortError") {
+      const e = new Error("openai_responses_timeout");
+      e.detail = "Timed out waiting for text generation";
+      e.model = requestModel;
+      throw e;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
   if (!resp.ok) {
     const errText = await resp.text().catch(() => "");
     const parsed = parseOpenAiErrorBody(errText);
@@ -1730,21 +1747,38 @@ async function callOpenAiResponsesJson({ apiKey, instructions, input, model }) {
   }
 }
 
-async function callOpenAiImageBase64({ apiKey, prompt, size }) {
+async function callOpenAiImageBase64({ apiKey, prompt, size, timeoutMs }) {
   const requestModel = OPENAI_IMAGE_MODEL;
-  const resp = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: requestModel,
-      prompt,
-      size: size || OPENAI_IMAGE_SIZE,
-      n: 1,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(), Math.max(1000, Number(timeoutMs) || 15000));
+  let resp;
+  try {
+    resp = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: requestModel,
+        prompt,
+        size: size || OPENAI_IMAGE_SIZE,
+        n: 1,
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeoutHandle);
+    if (err && err.name === "AbortError") {
+      const e = new Error("openai_image_timeout");
+      e.detail = "Timed out waiting for image generation";
+      e.model = requestModel;
+      throw e;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
   if (!resp.ok) {
     const errText = await resp.text().catch(() => "");
     const parsed = parseOpenAiErrorBody(errText);
@@ -1873,8 +1907,21 @@ function buildCoverImagePrompt(payload, brief) {
   const styleHint = brief.imageStyle
     ? `${brief.imageStyle} style`
     : "modern editorial style";
+  const sectionHeadings = Array.isArray(payload.toc)
+    ? payload.toc
+        .map((item) => item && item.label ? String(item.label).trim() : "")
+        .filter(Boolean)
+        .slice(0, 6)
+    : [];
+  const articleContext = [
+    `Article title: ${payload.title || brief.topic}`,
+    payload.summary ? `Article summary: ${payload.summary}` : "",
+    payload.category ? `Category: ${payload.category}` : "",
+    sectionHeadings.length ? `Main sections: ${sectionHeadings.join("; ")}` : "",
+  ].filter(Boolean).join(". ");
   const base = payload.coverImagePrompt
-    || `An evocative hero illustration for an article titled "${payload.title}". ${payload.summary || ""}`;
+    ? `${payload.coverImagePrompt}. Use this article context: ${articleContext}`
+    : `An evocative hero illustration for this article. ${articleContext}`;
   return [
     base,
     `Visual direction: ${styleHint}, sophisticated colour palette, generous negative space,`,
@@ -1886,6 +1933,9 @@ function buildCoverImagePrompt(payload, brief) {
 exports.generateBlogPost = onRequest(
   { timeoutSeconds: 540, memory: "1GiB" },
   async (req, res) => {
+    const headers = corsHeaders(req);
+    res.set(headers);
+    const requestStartedAt = Date.now();
     if (req.method === "OPTIONS") {
       res.status(204).send("");
       return;
@@ -1957,7 +2007,12 @@ exports.generateBlogPost = onRequest(
     try {
       const instructions = buildBlogGenerationSystemPrompt();
       const input = buildBlogGenerationUserPrompt({ brief, existingPosts });
-      aiPayload = await callOpenAiResponsesJson({ apiKey, instructions, input });
+      aiPayload = await callOpenAiResponsesJson({
+        apiKey,
+        instructions,
+        input,
+        timeoutMs: 180000,
+      });
     } catch (err) {
       logger.error("generateBlogPost: openai responses call failed", {
         message: err.message,
@@ -2011,6 +2066,7 @@ exports.generateBlogPost = onRequest(
           apiKey,
           prompt: imagePrompt,
           size: OPENAI_IMAGE_SIZE,
+          timeoutMs: 240000,
         });
         coverInfo = await uploadCoverImageToStorage(slug, buffer);
         normalized.coverImage.url = coverInfo.url;
@@ -2022,7 +2078,7 @@ exports.generateBlogPost = onRequest(
         const errorDetail = err && err.detail
           ? String(err.detail)
           : errorMessage;
-        logger.error("generateBlogPost: image generation/upload failed", {
+        logger.error("generateBlogPost: required image generation/upload failed", {
           errorMessage,
           errorCode: err && err.code ? String(err.code) : "",
           status: err.status,
@@ -2030,16 +2086,16 @@ exports.generateBlogPost = onRequest(
           body: err.body,
           stack: err && err.stack ? String(err.stack).slice(0, 3000) : "",
           model: err.model || OPENAI_IMAGE_MODEL,
+          elapsedMs: Date.now() - requestStartedAt,
         });
-        // Continue without a cover image so the admin can still review the draft.
-        normalized.coverImage.url = "";
-        imageError = {
-          message: errorMessage || "image_failed",
+        res.status(502).json({
+          ok: false,
+          error: errorMessage || "image_failed",
           detail: errorDetail || "",
-          status: err.status || null,
-          code: err && err.code ? String(err.code) : "",
+          upstreamStatus: err.status || null,
           model: err.model || OPENAI_IMAGE_MODEL,
-        };
+        });
+        return;
       }
     }
 

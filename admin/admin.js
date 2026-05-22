@@ -2218,6 +2218,8 @@
       case "openai_responses_failed":
       case "openai_chat_failed":
         return "OpenAI rejected the request" + upstream + model + detailSuffix;
+      case "openai_responses_timeout":
+        return "AI text generation timed out. Try again or reduce prompt complexity.";
       case "openai_responses_empty":
         return "OpenAI returned no text" + model + detailSuffix;
       case "openai_responses_invalid_json":
@@ -2258,15 +2260,15 @@
       imageStyle: ($("blogAiImageStyle") && $("blogAiImageStyle").value || "").trim(),
       sectionsCount: parseInt(($("blogAiSections") && $("blogAiSections").value) || "0", 10) || 0,
       notes: ($("blogAiNotes") && $("blogAiNotes").value || "").trim(),
-      generateImage: !!($("blogAiGenerateImage") && $("blogAiGenerateImage").checked),
+      generateImage: true,
     };
 
     if (btn) btn.disabled = true;
-    setBlogAiStatus("ok", "Reviewing the blog and drafting content\u2026 this can take ~30\u201360s.");
+    setBlogAiStatus("ok", "Reviewing the blog, drafting content, and generating a cover image\u2026 this can take a few minutes.");
 
     try {
       var token = await user.getIdToken();
-      var resp = await fetch("/api/generate-blog-post", {
+      var resp = await fetch("https://europe-west2-code-and-canvas.cloudfunctions.net/generateBlogPost", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
