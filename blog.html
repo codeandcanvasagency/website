@@ -16,8 +16,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
 
-<link rel="stylesheet" href="/css/styles.css?v=20260501h" />
-<link rel="stylesheet" href="/css/pages.css?v=20260520b" />
+<link rel="stylesheet" href="/css/styles.css?v=20260610q" />
+<link rel="stylesheet" href="/css/pages.css?v=20260610q" />
 <link rel="stylesheet" href="/css/contact-form.css?v=20260428j" />
 </head>
 <body data-screen-label="Blog">
@@ -32,55 +32,33 @@
     <h1>Articles &amp; <span class="italic">resources.</span></h1>
     <p class="lead">Insights, deep-dives and field notes from our studio — on brand, product, engineering, and the craft of digital experience.</p>
 
-    <form class="blog-search" onsubmit="event.preventDefault();">
-      <span class="search-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-      </span>
-      <input id="blogSearchInput" type="search" placeholder="Search articles…" aria-label="Search articles" autocomplete="off" />
-      <button type="submit" class="btn btn-primary">Search <span class="arrow"></span></button>
-    </form>
+    <div class="blog-hero-toolbar">
+      <div class="blog-search-group">
+        <form class="blog-search" id="blogSearchForm" onsubmit="event.preventDefault();">
+          <span class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          </span>
+          <input id="blogSearchInput" type="search" placeholder="Search articles…" aria-label="Search articles" autocomplete="off" />
+        </form>
+        <button type="submit" class="btn btn-primary blog-search-btn" form="blogSearchForm">Search <span class="arrow"></span></button>
+      </div>
 
-    <div id="cc-blog-categories" class="blog-categories" role="tablist"></div>
-  </div>
-</section>
+      <select id="blogFilterSelect" class="blog-hero-select" aria-label="Filter articles by category">
+        <option value="">All categories</option>
+      </select>
 
-<!-- FEATURED ARTICLE -->
-<section class="blog-featured-section">
-  <div class="container">
-    <div class="section-head">
-      <span class="label">— Featured</span>
-      <h2>This <span class="italic">week.</span></h2>
+      <select id="blogSortSelect" class="blog-hero-select" aria-label="Sort articles by date">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+      </select>
     </div>
-
-    <div id="cc-blog-featured"></div>
   </div>
 </section>
 
 <!-- POSTS GRID -->
 <section class="blog-list-section">
   <div class="container">
-    <div class="blog-list-head">
-      <span class="label">— Latest</span>
-      <h2>All <span class="italic">articles.</span></h2>
-      <div class="blog-list-controls">
-        <div class="filter-control">
-          <span class="cm-label">Filter</span>
-          <select id="blogFilterSelect" aria-label="Filter articles by category">
-            <option value="">All categories</option>
-          </select>
-        </div>
-        <div class="sort-control">
-          <span class="cm-label">Sort</span>
-          <select id="blogSortSelect" aria-label="Sort articles">
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
     <div id="cc-blog-grid" class="blog-list-grid"></div>
-
     <div id="cc-blog-pagination" class="pagination"></div>
   </div>
 </section>
@@ -92,6 +70,7 @@
 <script src="/js/firebase-config.js?v=20260428j"></script>
 <script src="/js/firebase-app.js?v=20260428j"></script>
 <script src="/js/site-ui.js?v=20260428j"></script>
-<script src="/js/blog-list.js?v=20260520d"></script>
+<script src="/js/blog-card-utils.js?v=20260610f"></script>
+<script src="/js/blog-list.js?v=20260610g"></script>
 </body>
 </html>

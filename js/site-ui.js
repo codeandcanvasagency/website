@@ -508,12 +508,32 @@
     window.addEventListener("resize", update);
   }
 
+  // ---------------- Detail hero cover images (project + service pages) ----
+
+  function bindDetailCoverImages(root) {
+    var scope = root || document;
+    var imgs = scope.querySelectorAll(".detail-cover img[data-img-state]");
+    imgs.forEach(function (img) {
+      function markLoaded() {
+        img.classList.add("is-loaded");
+      }
+      if (img.complete && img.naturalWidth > 0) {
+        markLoaded();
+        return;
+      }
+      img.addEventListener("load", markLoaded, { once: true });
+      img.addEventListener("error", markLoaded, { once: true });
+    });
+  }
+
   // ---------------- Public API ------------------------------------------
 
   window.SiteUI = {
+    bindDetailCoverImages: bindDetailCoverImages,
     rebindAfterDynamicMount: function (rootEl) {
       bindCarousels();
       observeNewReveals(rootEl);
+      bindDetailCoverImages(rootEl);
     },
     refreshTestimonials: function (rootEl) {
       var inst = buildTestimonials(rootEl || document.querySelector("[data-testimonials]"));
@@ -539,6 +559,7 @@
       bindTestimonials();
       bindReadingProgress();
       bindArticleToc();
+      bindDetailCoverImages(document);
       document.dispatchEvent(new CustomEvent("partials:loaded"));
     });
   }

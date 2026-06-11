@@ -1,4 +1,46 @@
 (function () {
+  if (!window.ccBlogCard) {
+    (function () {
+      function escMeta(s) {
+        if (s === undefined || s === null) return "";
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function fmtDate(d) {
+        if (!d) return "";
+        var raw = d;
+        if (typeof d === "object" && typeof d.toDate === "function") raw = d.toDate();
+        var dt = raw instanceof Date ? raw : new Date(raw);
+        if (isNaN(dt.getTime())) return escMeta(String(d));
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        var label = dt.getDate() + " " + months[dt.getMonth()];
+        if (dt.getFullYear() !== new Date().getFullYear()) label += " " + dt.getFullYear();
+        return label;
+      }
+      function readMinutesText(n) {
+        var mins = parseInt(n, 10);
+        if (!mins || mins < 1) return "";
+        return mins + " min read";
+      }
+      function metaHtml(post) {
+        if (!post) return "";
+        var category = escMeta(post.category || "");
+        var date = fmtDate(post.publishedAt);
+        var read = readMinutesText(post.readingTimeMinutes);
+        var parts = [];
+        if (category) parts.push("<span>" + category + "</span>");
+        if (date) parts.push("<span>" + date + "</span>");
+        if (read) parts.push("<span>" + read + "</span>");
+        if (!parts.length) return "";
+        return '<div class="post-meta">' + parts.join("<span>\u00b7</span>") + "</div>";
+      }
+      window.ccBlogCard = { fmtDate: fmtDate, readMinutesText: readMinutesText, metaHtml: metaHtml };
+    })();
+  }
+
   var SITE_ORIGIN = "https://code-and-canvas.web.app";
 
   function esc(s) {
@@ -227,6 +269,7 @@
   }
 
   function fmtDate(d) {
+    if (window.ccBlogCard && ccBlogCard.fmtDate) return ccBlogCard.fmtDate(d);
     if (!d) return "";
     var raw = d;
     if (typeof d === "object" && typeof d.toDate === "function") raw = d.toDate();
@@ -269,6 +312,30 @@
       tags.slice(0, 4).map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("") +
       "</div>"
     );
+  }
+
+  function articleStatRow(label, valueHtml) {
+    if (!valueHtml) return "";
+    return (
+      '<div class="stat">' +
+      '<span class="stat-label">' + esc(label) + "</span>" +
+      '<span class="stat-value">' + valueHtml + "</span>" +
+      "</div>"
+    );
+  }
+
+  function articleStatsHtml(p) {
+    var rows = [];
+    if (p.category) rows.push(articleStatRow("Category", esc(p.category)));
+    if (Array.isArray(p.tags) && p.tags.length) {
+      rows.push(articleStatRow("Tags", tagsHtml(p.tags)));
+    }
+    var date = fmtDate(p.publishedAt);
+    if (date) rows.push(articleStatRow("Published", esc(date)));
+    var read = readMinutesText(p.readingTimeMinutes);
+    if (read) rows.push(articleStatRow("Read time", esc(read)));
+    if (!rows.length) return "";
+    return '<div class="detail-stats" data-reveal>' + rows.join("") + "</div>";
   }
 
   function shareRowHtml(url, tweetText) {
@@ -324,20 +391,18 @@
       case "list":
         var items = (b.items || []).map(function (it) { return "<li>" + richText(it) + "</li>"; }).join("");
         return b.style === "number" ? "<ol>" + items + "</ol>" : "<ul>" + items + "</ul>";
-      case "quote":
+      case "quote": {
+        var cite = String(b.cite || "").trim();
+        var isStudioCite = /^code\s*&\s*canvas$/i.test(cite);
         return (
           "<blockquote>" +
             "<p>" + richText(b.text) + "</p>" +
-            (b.cite ? "<cite>" + esc(b.cite) + "</cite>" : "") +
+            (cite && !isStudioCite ? "<cite>" + esc(cite) + "</cite>" : "") +
           "</blockquote>"
         );
+      }
       case "callout":
-        return (
-          '<div class="callout">' +
-            (b.tag ? '<span class="callout-tag">' + esc(b.tag) + "</span>" : "") +
-            "<p>" + richText(b.text) + "</p>" +
-          "</div>"
-        );
+        return "";
       case "image":
         if (!b.url) return "";
         return (
@@ -355,23 +420,16 @@
     if (!s) return "";
     var blocks = (s.blocks || []).map(blockHtml).join("");
     var heading = s.heading
-      ? '<h2 id="' + esc(s.id || "") + '">' +
-          (s.number ? '<span class="marker">\u2014 ' + esc(s.number) + "</span>" : "") +
-          esc(s.heading) +
-        "</h2>"
+      ? '<h2 id="' + esc(s.id || "") + '">' + esc(s.heading) + "</h2>"
       : "";
-    return heading + blocks;
+    if (!heading && !blocks) return "";
+    return (
+      '<section class="article-section">' +
+      heading +
+      (blocks ? '<div class="article-section-body">' + blocks + "</div>" : "") +
+      "</section>"
+    );
   }
-
-  var DEFAULT_MID_CTA = {
-    eyebrow: "Studio note",
-    title: 'Need a sharper <span class="italic">digital presence?</span>',
-    text: "We help teams turn strategy, design, and engineering into websites that are clear, fast, and ready to grow.",
-    primaryLabel: "Start a project",
-    primaryUrl: "/contact",
-    secondaryLabel: "See our work",
-    secondaryUrl: "/projects",
-  };
 
   var DEFAULT_FINAL_CTA = {
     eyebrow: "Ready when you are",
@@ -440,12 +498,9 @@
     return '<section class="article-final-cta"><div class="container">' + html + "</div></section>";
   }
 
-  function bodyHtml(sections, midCta) {
+  function bodyHtml(sections) {
     if (!Array.isArray(sections) || !sections.length) return "";
-    var insertAfter = Math.max(1, Math.ceil(sections.length / 2));
-    return sections.map(function (s, idx) {
-      return sectionHtml(s) + (idx + 1 === insertAfter ? articleCtaHtml(midCta, DEFAULT_MID_CTA, "mid") : "");
-    }).join("");
+    return sections.map(sectionHtml).join("");
   }
 
   function authorHtml(author) {
@@ -484,25 +539,18 @@
     var href = "/blog/" + esc(r.slug || "");
     var img = esc(ci.url || "/images/image-placeholder.svg");
     var alt = esc(ci.alt || r.title || "");
-    var category = esc(r.category || "");
-    var read = readMinutesText(r.readingTimeMinutes);
-    var date = fmtDate(r.publishedAt);
     var titleHtml = renderTitleHtml(r.title || "");
     var summary = esc(r.summary || "");
+    var metaHtml = window.ccBlogCard ? ccBlogCard.metaHtml(r) : "";
     return (
       '<a href="' + href + '" class="post-card" data-reveal>' +
         '<div class="post-media">' +
           '<img data-img-state loading="lazy" decoding="async" src="' + img + '" alt="' + alt + '" />' +
         "</div>" +
         '<div class="post-body">' +
-          '<div class="post-meta">' +
-            (category ? "<span>" + category + "</span>" : "") +
-            (category && read ? "<span>\u00b7</span>" : "") +
-            (read ? "<span>" + read + "</span>" : "") +
-          "</div>" +
           "<h3>" + titleHtml + "</h3>" +
           (summary ? "<p>" + summary + "</p>" : "") +
-          (date ? '<span class="post-date">' + esc(date) + "</span>" : "") +
+          metaHtml +
         "</div>" +
       "</a>"
     );
@@ -570,16 +618,12 @@
     var root = document.getElementById("blog-detail-root");
     if (!root) return;
 
-    var shareUrl = blogCanonicalUrl(slug);
-    var tweetText = shareTweetText(p);
     setShareMeta(p, slug);
     setBlogJsonLd(p, slug);
 
     var coverImg = p.coverImage || {};
     var cover = coverImg.url || "/images/image-placeholder.svg";
     var coverAlt = coverImg.alt || p.title || "";
-    var date = fmtDate(p.publishedAt);
-    var read = readMinutesText(p.readingTimeMinutes);
     var titleHtml = renderTitleHtml(p.title || "Blog Post");
     var author = p.author || {};
     preloadImage(cover, "high");
@@ -588,42 +632,27 @@
     root.innerHTML =
       '<div class="reading-progress" data-reading-progress></div>' +
       '<article class="article">' +
-        '<section class="article-hero">' +
+        '<section class="page-hero detail-hero">' +
           '<div class="container">' +
             '<a href="/blog" class="back-link">' +
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 18l-6-6 6-6"/></svg>' +
               "All articles</a>" +
-            tagsHtml(p.tags) +
-            "<h1>" + titleHtml + "</h1>" +
-            (p.summary ? '<p class="article-deck">' + esc(p.summary) + "</p>" : "") +
-            '<div class="article-byline">' +
-              (author.name
-                ? '<div class="byline-author">' +
-                    (author.avatarUrl
-                      ? '<span class="avatar"><img data-img-state loading="eager" fetchpriority="high" decoding="async" src="' + esc(author.avatarUrl) + '" alt="' + esc(author.name) + '"/></span>'
-                      : "") +
-                    "<div>" +
-                      '<span class="byline-name">' + esc(author.name) + "</span>" +
-                      (author.role ? '<span class="byline-role">' + esc(author.role) + "</span>" : "") +
-                    "</div></div>"
-                : "") +
-              '<div class="byline-meta">' +
-                (date ? '<div class="bm-row"><span class="cm-label">Published</span><span>' + esc(date) + "</span></div>" : "") +
-                (read ? '<div class="bm-row"><span class="cm-label">Read time</span><span>' + esc(read) + "</span></div>" : "") +
+            '<div class="detail-hero-layout">' +
+              '<div class="detail-hero-copy" data-reveal>' +
+                "<h1>" + titleHtml + "</h1>" +
+                (p.summary ? '<p class="lead">' + esc(p.summary) + "</p>" : "") +
               "</div>" +
+              '<div class="detail-cover" data-reveal>' +
+                '<img data-img-state loading="eager" fetchpriority="high" decoding="async" src="' + esc(cover) + '" alt="' + esc(coverAlt) + '" />' +
+              "</div>" +
+              articleStatsHtml(p) +
             "</div>" +
           "</div>" +
         "</section>" +
-        '<div class="container">' +
-          '<div class="article-cover">' +
-            '<img data-img-state loading="eager" fetchpriority="high" decoding="async" src="' + esc(cover) + '" alt="' + esc(coverAlt) + '" />' +
-          "</div>" +
-        "</div>" +
-        '<section class="article-body-section">' +
+        '<section class="article-body-section article-body-light">' +
           '<div class="container">' +
             '<div class="article-layout">' +
-              tocHtml(p.toc, p.body, shareUrl, tweetText) +
-              '<div class="article-prose">' + bodyHtml(p.body, p.midCta) + "</div>" +
+              '<div class="article-prose">' + bodyHtml(p.body) + "</div>" +
             "</div>" +
           "</div>" +
         "</section>" +
@@ -638,7 +667,6 @@
       SiteUI.rebindArticle(root);
     }
 
-    wireShare(root, shareUrl);
   }
 
   function notFound(root) {

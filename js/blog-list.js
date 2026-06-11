@@ -1,4 +1,46 @@
 (function () {
+  if (!window.ccBlogCard) {
+    (function () {
+      function escMeta(s) {
+        if (s === undefined || s === null) return "";
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function fmtDate(d) {
+        if (!d) return "";
+        var raw = d;
+        if (typeof d === "object" && typeof d.toDate === "function") raw = d.toDate();
+        var dt = raw instanceof Date ? raw : new Date(raw);
+        if (isNaN(dt.getTime())) return escMeta(String(d));
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        var label = dt.getDate() + " " + months[dt.getMonth()];
+        if (dt.getFullYear() !== new Date().getFullYear()) label += " " + dt.getFullYear();
+        return label;
+      }
+      function readMinutesText(n) {
+        var mins = parseInt(n, 10);
+        if (!mins || mins < 1) return "";
+        return mins + " min read";
+      }
+      function metaHtml(post) {
+        if (!post) return "";
+        var category = escMeta(post.category || "");
+        var date = fmtDate(post.publishedAt);
+        var read = readMinutesText(post.readingTimeMinutes);
+        var parts = [];
+        if (category) parts.push("<span>" + category + "</span>");
+        if (date) parts.push("<span>" + date + "</span>");
+        if (read) parts.push("<span>" + read + "</span>");
+        if (!parts.length) return "";
+        return '<div class="post-meta">' + parts.join("<span>\u00b7</span>") + "</div>";
+      }
+      window.ccBlogCard = { fmtDate: fmtDate, readMinutesText: readMinutesText, metaHtml: metaHtml };
+    })();
+  }
+
   var POSTS_PER_PAGE = 6;
   var allPosts = [];
   var filteredPosts = [];
@@ -14,22 +56,6 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  }
-
-  function readMinutesText(n) {
-    var mins = parseInt(n, 10);
-    if (!mins || mins < 1) return "";
-    return mins + " min read";
-  }
-
-  function fmtDate(d) {
-    if (!d) return "";
-    var raw = d;
-    if (typeof d === "object" && typeof d.toDate === "function") raw = d.toDate();
-    var dt = raw instanceof Date ? raw : new Date(raw);
-    if (isNaN(dt.getTime())) return esc(String(d));
-    var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    return dt.getDate() + " " + months[dt.getMonth()] + " " + dt.getFullYear();
   }
 
   // Title rendering mirrors blog-detail: trust author <span class="italic"> if
@@ -56,61 +82,22 @@
   function publishedAtOf(p) { return p.publishedAt || ""; }
   function readingMinutesOf(p) { return p.readingTimeMinutes; }
 
-  function featuredCardHtml(p) {
-    var href = "/blog/" + esc(p.slug);
-    var img = esc(coverUrlOf(p) || "/images/image-placeholder.svg");
-    var alt = esc(coverAltOf(p));
-    var titleHtml = renderTitleHtml(p.title || "Blog Post");
-    var summary = esc(p.summary || "");
-    var date = fmtDate(publishedAtOf(p));
-    var category = esc(p.category || "");
-    var read = readMinutesText(readingMinutesOf(p));
-    var showMetaDotAfterCategory = !!(category && (read || date));
-    var showMetaDotAfterRead = !!(read && date);
-    return (
-      '<a href="' + href + '" class="featured-article" data-reveal>' +
-      '<div class="featured-media">' +
-      '<img loading="lazy" decoding="async" src="' + img + '" alt="' + alt + '" />' +
-      (category ? '<span class="featured-tag">' + category + "</span>" : "") +
-      "</div>" +
-      '<div class="featured-body">' +
-      '<div class="featured-meta">' +
-      (category ? "<span>\u2014 " + category + "</span>" : "") +
-      (showMetaDotAfterCategory ? "<span>\u00b7</span>" : "") +
-      (read ? "<span>" + read + "</span>" : "") +
-      (showMetaDotAfterRead ? "<span>\u00b7</span>" : "") +
-      (date ? "<span>" + date + "</span>" : "") +
-      "</div>" +
-      "<h3>" + titleHtml + "</h3>" +
-      (summary ? "<p>" + summary + "</p>" : "") +
-      "</div>" +
-      "</a>"
-    );
-  }
-
   function postCardHtml(p) {
     var href = "/blog/" + esc(p.slug);
     var img = esc(coverUrlOf(p) || "/images/image-placeholder.svg");
     var alt = esc(coverAltOf(p));
     var titleHtml = renderTitleHtml(p.title || "Blog Post");
     var summary = esc(p.summary || "");
-    var date = fmtDate(publishedAtOf(p));
-    var category = esc(p.category || "");
-    var read = readMinutesText(readingMinutesOf(p));
+    var metaHtml = window.ccBlogCard ? ccBlogCard.metaHtml(p) : "";
     return (
       '<a href="' + href + '" class="post-card" data-reveal>' +
       '<div class="post-media">' +
       '<img loading="lazy" decoding="async" src="' + img + '" alt="' + alt + '" />' +
       "</div>" +
       '<div class="post-body">' +
-      '<div class="post-meta">' +
-      (category ? "<span>" + category + "</span>" : "") +
-      (category && read ? "<span>\u00b7</span>" : "") +
-      (read ? "<span>" + read + "</span>" : "") +
-      "</div>" +
       "<h3>" + titleHtml + "</h3>" +
       (summary ? "<p>" + summary + "</p>" : "") +
-      (date ? '<span class="post-date">' + date + "</span>" : "") +
+      metaHtml +
       "</div>" +
       "</a>"
     );
@@ -169,36 +156,6 @@
         applyFilters();
       });
     }
-  }
-
-  function renderCategories() {
-    var container = document.getElementById("cc-blog-categories");
-    if (!container) return;
-    if (!container.classList.contains("blog-categories")) {
-      container.classList.add("blog-categories");
-    }
-    var counts = {};
-    allPosts.forEach(function (p) {
-      if (p.category) counts[p.category] = (counts[p.category] || 0) + 1;
-    });
-    var sorted = Object.keys(counts).sort();
-    var html = '<button type="button" class="cat-chip cc-cat-btn' +
-      (!currentCategory ? " is-active" : "") +
-      '" data-cat="">All <span class="cat-count">' + allPosts.length + "</span></button>";
-    sorted.forEach(function (c) {
-      html += '<button type="button" class="cat-chip cc-cat-btn' +
-        (currentCategory === c ? " is-active" : "") +
-        '" data-cat="' + esc(c) + '">' + esc(c) +
-        ' <span class="cat-count">' + counts[c] + "</span></button>";
-    });
-    container.innerHTML = html;
-    container.querySelectorAll(".cc-cat-btn").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        currentCategory = btn.getAttribute("data-cat") || "";
-        currentPage = 0;
-        applyFilters();
-      });
-    });
   }
 
   function plainText(s) {
@@ -321,24 +278,9 @@
   function applyFilters() {
     filteredPosts = getFilteredPosts();
     renderFilterSelect();
-    renderCategories();
-    renderFeatured();
     renderGrid();
     renderPagination();
     syncBlogIndexSeo();
-  }
-
-  function renderFeatured() {
-    var container = document.getElementById("cc-blog-featured");
-    if (!container) return;
-    if (filteredPosts.length === 0) {
-      container.innerHTML = '<p class="text-mute">No articles found.</p>';
-      return;
-    }
-    container.innerHTML = featuredCardHtml(filteredPosts[0]);
-    if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
-      SiteUI.rebindAfterDynamicMount(container);
-    }
   }
 
   function renderGrid() {
@@ -347,11 +289,10 @@
     if (!container.classList.contains("blog-list-grid")) {
       container.classList.add("blog-list-grid");
     }
-    var gridPosts = filteredPosts.slice(1);
     var start = currentPage * POSTS_PER_PAGE;
-    var page = gridPosts.slice(start, start + POSTS_PER_PAGE);
-    if (page.length === 0 && filteredPosts.length <= 1) {
-      container.innerHTML = "";
+    var page = filteredPosts.slice(start, start + POSTS_PER_PAGE);
+    if (filteredPosts.length === 0) {
+      container.innerHTML = '<p class="text-mute">No articles found.</p>';
       return;
     }
     if (page.length === 0) {
@@ -370,8 +311,7 @@
     if (!container.classList.contains("pagination")) {
       container.classList.add("pagination");
     }
-    var gridPosts = filteredPosts.slice(1);
-    var totalPages = Math.ceil(gridPosts.length / POSTS_PER_PAGE);
+    var totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
     if (totalPages <= 1) { container.innerHTML = ""; return; }
 
     var prevDisabled = currentPage === 0;
@@ -459,10 +399,8 @@
       .get()
       .then(function (snap) {
         if (snap.empty) {
-          var fc = document.getElementById("cc-blog-featured");
-          if (fc) fc.innerHTML = '<p class="text-mute">No articles yet.</p>';
           var gc = document.getElementById("cc-blog-grid");
-          if (gc) gc.innerHTML = "";
+          if (gc) gc.innerHTML = '<p class="text-mute">No articles yet.</p>';
           return;
         }
         allPosts = [];
@@ -475,8 +413,8 @@
       })
       .catch(function (err) {
         console.error("blog list error", err);
-        var fc = document.getElementById("cc-blog-featured");
-        if (fc) fc.innerHTML = '<p class="text-mute">Could not load articles.</p>';
+        var gc = document.getElementById("cc-blog-grid");
+        if (gc) gc.innerHTML = '<p class="text-mute">Could not load articles.</p>';
       });
   }
 

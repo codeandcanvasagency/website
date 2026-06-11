@@ -1,4 +1,46 @@
 (function () {
+  if (!window.ccBlogCard) {
+    (function () {
+      function escMeta(s) {
+        if (s === undefined || s === null) return "";
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function fmtDate(d) {
+        if (!d) return "";
+        var raw = d;
+        if (typeof d === "object" && typeof d.toDate === "function") raw = d.toDate();
+        var dt = raw instanceof Date ? raw : new Date(raw);
+        if (isNaN(dt.getTime())) return escMeta(String(d));
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        var label = dt.getDate() + " " + months[dt.getMonth()];
+        if (dt.getFullYear() !== new Date().getFullYear()) label += " " + dt.getFullYear();
+        return label;
+      }
+      function readMinutesText(n) {
+        var mins = parseInt(n, 10);
+        if (!mins || mins < 1) return "";
+        return mins + " min read";
+      }
+      function metaHtml(post) {
+        if (!post) return "";
+        var category = escMeta(post.category || "");
+        var date = fmtDate(post.publishedAt);
+        var read = readMinutesText(post.readingTimeMinutes);
+        var parts = [];
+        if (category) parts.push("<span>" + category + "</span>");
+        if (date) parts.push("<span>" + date + "</span>");
+        if (read) parts.push("<span>" + read + "</span>");
+        if (!parts.length) return "";
+        return '<div class="post-meta">' + parts.join("<span>\u00b7</span>") + "</div>";
+      }
+      window.ccBlogCard = { fmtDate: fmtDate, readMinutesText: readMinutesText, metaHtml: metaHtml };
+    })();
+  }
+
   function esc(s) {
     if (s === undefined || s === null) return "";
     return String(s)
@@ -6,12 +48,6 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  }
-
-  function readMinutesText(n) {
-    var mins = parseInt(n, 10);
-    if (!mins || mins < 1) return "";
-    return mins + " min read";
   }
 
   function summaryFor(p) {
@@ -45,15 +81,13 @@
     var alt = esc(coverAlt);
     var titleHtml = renderTitleHtml(p.title || "Blog Post");
     var summary = esc(summaryFor(p));
-    var category = esc(p.category || "");
-    var read = readMinutesText(p.readingTimeMinutes);
-    var meta = [category, read].filter(Boolean).map(function (m) { return "<span>" + m + "</span>"; }).join("");
+    var metaHtml = window.ccBlogCard ? ccBlogCard.metaHtml(p) : "";
     return (
       '<a href="' + href + '" class="carousel-card">' +
       '<div class="img"><img loading="lazy" decoding="async" src="' + img + '" alt="' + alt + '" /></div>' +
-      (meta ? '<div class="card-meta">' + meta + "</div>" : "") +
       '<div class="title">' + titleHtml + "</div>" +
       (summary ? '<p class="summary">' + summary + "</p>" : "") +
+      metaHtml +
       "</a>"
     );
   }

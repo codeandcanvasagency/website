@@ -94,6 +94,10 @@ function resolvePath(reqPath) {
     const f = tryFile("project-detail.html");
     if (f) return { file: f };
   }
+  if (reqPath === "/blog") {
+    const f = tryFile("blog.html");
+    if (f) return { file: f };
+  }
   if (reqPath.startsWith("/blog/")) {
     const f = tryFile("blog-detail.html");
     if (f) return { file: f };

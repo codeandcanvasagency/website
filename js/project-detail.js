@@ -33,30 +33,72 @@
     );
   }
 
-  function plainToParagraphs(text) {
+  function isBulletLine(line) {
+    return /^[•\u2022\-\*–]\s+/.test(line);
+  }
+
+  function bulletLineText(line) {
+    return line.replace(/^[•\u2022\-\*–]\s+/, "");
+  }
+
+  function isNumberedLine(line) {
+    return /^\d+[\.\)]\s+/.test(line);
+  }
+
+  function numberedLineText(line) {
+    return line.replace(/^\d+[\.\)]\s+/, "");
+  }
+
+  function linesToHtml(lines) {
+    var html = [];
+    var i = 0;
+    while (i < lines.length) {
+      var line = lines[i];
+      if (isBulletLine(line)) {
+        var bulletItems = [];
+        while (i < lines.length && isBulletLine(lines[i])) {
+          bulletItems.push("<li>" + esc(bulletLineText(lines[i])) + "</li>");
+          i++;
+        }
+        html.push("<ul>" + bulletItems.join("") + "</ul>");
+      } else if (isNumberedLine(line)) {
+        var numberedItems = [];
+        while (i < lines.length && isNumberedLine(lines[i])) {
+          numberedItems.push("<li>" + esc(numberedLineText(lines[i])) + "</li>");
+          i++;
+        }
+        html.push("<ol>" + numberedItems.join("") + "</ol>");
+      } else {
+        html.push("<p>" + esc(line) + "</p>");
+        i++;
+      }
+    }
+    return html.join("");
+  }
+
+  function plainToRichHtml(text) {
     if (!text || !String(text).trim()) return "";
     return String(text)
       .trim()
       .split(/\n{2,}/)
       .map(function (block) {
-        return "<p>" + esc(block).replace(/\n/g, "<br/>") + "</p>";
+        var lines = block.split(/\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+        return linesToHtml(lines);
       })
       .join("");
   }
 
   function buildCaseBody(p) {
     var sections = [];
-    var idx = 0;
 
     function add(title, body) {
       if (!body || !String(body).trim()) return;
-      idx++;
-      var marker = "— " + (idx < 10 ? "0" + idx : idx) + " / " + title;
-      var html =
-        '<h2><span class="marker">' + esc(marker) + "</span>" +
-        esc(title) + "</h2>" +
-        plainToParagraphs(body);
-      sections.push(html);
+      sections.push(
+        '<section class="case-section">' +
+        "<h2>" + esc(title) + "</h2>" +
+        plainToRichHtml(body) +
+        "</section>"
+      );
     }
 
     if (p.bodyHtml) {
@@ -112,6 +154,10 @@
 
   function bindImageLoadStates(root) {
     if (!root) return;
+    if (window.SiteUI && typeof SiteUI.bindDetailCoverImages === "function") {
+      SiteUI.bindDetailCoverImages(root);
+      return;
+    }
     var imgs = root.querySelectorAll("img[data-img-state]");
     imgs.forEach(function (img) {
       if (img.complete && img.naturalWidth > 0) {
@@ -175,16 +221,27 @@
           }
         });
         if (!next) { root.innerHTML = ""; return; }
+        var href = "/projects/" + esc(next.slug);
+        var img = esc(next.coverImageUrl || "/images/image-placeholder.svg");
+        var title = esc(next.title || "View project");
         root.innerHTML =
-          '<section class="section next-project-section" style="padding-top: 0; padding-bottom: 0">' +
+          '<section class="section next-project-section">' +
           '<div class="container">' +
-          '<div class="section-head next-project-head" style="border-top: 1px solid var(--ink-line); padding-top: 64px">' +
+          '<div class="next-project-block">' +
+          '<a href="' + href + '" class="next-project-thumb" aria-label="View next project: ' + title + '">' +
+          '<img data-img-state loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" />' +
+          "</a>" +
+          '<div class="section-head next-project-head">' +
           '<div class="head-left">' +
           '<div class="eyebrow">Next project</div>' +
-          '<h2 class="display-3">' + esc(next.title || "View project") + "</h2>" +
+          '<h2 class="display-3">' + title + "</h2>" +
           "</div>" +
-          '<a href="/projects/' + esc(next.slug) + '" class="btn btn-ghost">View case study <span class="arrow"></span></a>' +
-          "</div></div></section>";
+          '<a href="' + href + '" class="btn btn-ghost">View case study <span class="arrow"></span></a>' +
+          "</div></div></div></section>";
+        bindImageLoadStates(root);
+        if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
+          SiteUI.rebindAfterDynamicMount(root);
+        }
       })
       .catch(function (err) { console.error("next project error", err); });
   }
@@ -233,10 +290,6 @@
         ? "<section><div class=\"container\"><div class=\"case-body\" data-reveal>" + body + "</div></div></section>"
         : "") +
       galleryGridSection(galleryGridUrls) +
-      '<section><div class="container"><div class="detail-cta" data-reveal>' +
-      '<h3>Have a project that needs <span class="italic">this kind of care?</span></h3>' +
-      '<a href="/contact" class="btn btn-primary">Let\'s chat <span class="arrow"></span></a>' +
-      "</div></div></section>" +
       '<div id="project-next-root"></div>';
 
     bindImageLoadStates(root);
