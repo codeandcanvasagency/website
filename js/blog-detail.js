@@ -431,14 +431,10 @@
     );
   }
 
-  var DEFAULT_FINAL_CTA = {
-    eyebrow: "Ready when you are",
-    title: 'Let us turn the next idea into a <span class="italic">working product.</span>',
-    text: "Bring us the brief, the half-formed plan, or the messy rebuild. We will help shape the next move.",
-    primaryLabel: "Book a call",
+  var BLOG_FINAL_CTA = {
+    title: "Launching soon?",
+    text: "From UX and storefront design to engineering and launch support, we help brands go live with fewer gaps and better foundations.",
     primaryUrl: "/contact",
-    secondaryLabel: "Explore services",
-    secondaryUrl: "/services",
   };
 
   function ctaLinkAttrs(url) {
@@ -492,10 +488,21 @@
     );
   }
 
-  function finalCtaHtml(raw) {
-    var html = articleCtaHtml(raw, DEFAULT_FINAL_CTA, "final");
-    if (!html) return "";
-    return '<section class="article-final-cta"><div class="container">' + html + "</div></section>";
+  function finalCtaHtml() {
+    return (
+      '<section class="section section--cta-tight article-final-cta" aria-label="Start a project">' +
+        '<div class="container">' +
+          '<div class="cta-inline cta-inline--flush" data-reveal>' +
+            '<h2 class="display-2">' + esc(BLOG_FINAL_CTA.title) + "</h2>" +
+            "<p>" + esc(BLOG_FINAL_CTA.text) + "</p>" +
+            '<a class="btn btn-primary"' + ctaLinkAttrs(BLOG_FINAL_CTA.primaryUrl) + ">" +
+              "Let's chat" +
+              '<span class="arrow"></span>' +
+            "</a>" +
+          "</div>" +
+        "</div>" +
+      "</section>"
+    );
   }
 
   function bodyHtml(sections) {
@@ -504,34 +511,7 @@
   }
 
   function authorHtml(author) {
-    if (!author || typeof author !== "object") return "";
-    var name = author.name || "";
-    var role = author.role || "";
-    var bio = author.bio || "";
-    var avatar = author.avatarUrl || "";
-    if (!name && !bio && !avatar) return "";
-    var moreUrl = author.moreArticlesUrl || "/blog";
-    var linkedin = author.linkedinUrl || "";
-    return (
-      '<section class="author-section">' +
-        '<div class="container">' +
-          '<div class="author-card" data-reveal>' +
-            '<div class="author-portrait">' +
-              (avatar ? '<img data-img-state loading="lazy" decoding="async" src="' + esc(avatar) + '" alt="' + esc(name) + '" />' : "") +
-            "</div>" +
-            '<div class="author-body">' +
-              '<span class="cm-label">\u2014 About the author</span>' +
-              "<h3>" + esc(name) + (role ? ' <span class="italic">\u2014 ' + esc(role) + ".</span>" : "") + "</h3>" +
-              (bio ? "<p>" + esc(bio) + "</p>" : "") +
-              '<div class="author-links">' +
-                '<a href="' + esc(moreUrl) + '" class="btn btn-secondary">Read more articles <span class="arrow"></span></a>' +
-                (linkedin ? '<a href="' + esc(linkedin) + '" target="_blank" rel="noopener" class="btn btn-ghost">LinkedIn \u2197</a>' : "") +
-              "</div>" +
-            "</div>" +
-          "</div>" +
-        "</div>" +
-      "</section>"
-    );
+    return "";
   }
 
   function relatedCardHtml(r) {
@@ -557,20 +537,7 @@
   }
 
   function relatedHtml(related) {
-    if (!Array.isArray(related) || !related.length) return "";
-    var cards = related.slice(0, 3).map(relatedCardHtml).join("");
-    return (
-      '<section class="related-section">' +
-        '<div class="container">' +
-          '<div class="section-head">' +
-            '<span class="label">\u2014 Keep reading</span>' +
-            '<h2>Related <span class="italic">articles.</span></h2>' +
-            '<a href="/blog" class="btn btn-secondary">All articles <span class="arrow"></span></a>' +
-          "</div>" +
-          '<div class="blog-list-grid">' + cards + "</div>" +
-        "</div>" +
-      "</section>"
-    );
+    return "";
   }
 
   function copyShareLink(url, btn) {
@@ -658,7 +625,7 @@
         "</section>" +
         authorHtml(author) +
       "</article>" +
-      finalCtaHtml(p.finalCta) +
+      finalCtaHtml() +
       relatedHtml(p.related);
 
     bindImageLoadStates(root);

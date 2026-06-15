@@ -33,6 +33,15 @@
     <p class="lead">Insights, deep-dives and field notes from our studio — on brand, product, engineering, and the craft of digital experience.</p>
 
     <div class="blog-hero-toolbar">
+      <select id="blogFilterSelect" class="blog-hero-select" aria-label="Filter articles by category">
+        <option value="">All categories</option>
+      </select>
+
+      <select id="blogSortSelect" class="blog-hero-select" aria-label="Sort articles by date">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+      </select>
+
       <div class="blog-search-group">
         <form class="blog-search" id="blogSearchForm" onsubmit="event.preventDefault();">
           <span class="search-icon" aria-hidden="true">
@@ -42,15 +51,6 @@
         </form>
         <button type="submit" class="btn btn-primary blog-search-btn" form="blogSearchForm">Search <span class="arrow"></span></button>
       </div>
-
-      <select id="blogFilterSelect" class="blog-hero-select" aria-label="Filter articles by category">
-        <option value="">All categories</option>
-      </select>
-
-      <select id="blogSortSelect" class="blog-hero-select" aria-label="Sort articles by date">
-        <option value="newest">Newest first</option>
-        <option value="oldest">Oldest first</option>
-      </select>
     </div>
   </div>
 </section>

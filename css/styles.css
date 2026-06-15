@@ -2005,7 +2005,14 @@ img, svg, video { max-width: 100%; }
 .footer-brand-contact a:hover { color: var(--paper); }
 
 /* Make sure the eyebrow underline still renders on the centered cta-inline */
-.cta-inline .eyebrow { display: inline-flex; }
+.cta-inline .eyebrow {
+  display: inline-flex;
+  margin-bottom: 20px;
+}
+
+.cta-inline .hero-cta-row {
+  justify-content: center;
+}
 
 @media (max-width: 640px) {
   .footer-brand-contact { font-size: 13px; }

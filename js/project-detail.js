@@ -200,50 +200,7 @@
   }
 
   function loadNext(currentSlug) {
-    var root = document.getElementById("project-next-root");
-    if (!root) return Promise.resolve();
-    if (!window.firebase || !firebase.apps.length) return Promise.resolve();
-    var db = firebase.firestore();
-    return db.collection("projects")
-      .where("published", "==", true)
-      .orderBy("date", "desc")
-      .limit(6)
-      .get()
-      .then(function (snap) {
-        if (snap.empty) { root.innerHTML = ""; return; }
-        var next = null;
-        snap.forEach(function (doc) {
-          if (next) return;
-          var d = doc.data();
-          if (d.slug && d.slug !== currentSlug) {
-            d.id = doc.id;
-            next = d;
-          }
-        });
-        if (!next) { root.innerHTML = ""; return; }
-        var href = "/projects/" + esc(next.slug);
-        var img = esc(next.coverImageUrl || "/images/image-placeholder.svg");
-        var title = esc(next.title || "View project");
-        root.innerHTML =
-          '<section class="section next-project-section">' +
-          '<div class="container">' +
-          '<div class="next-project-block">' +
-          '<a href="' + href + '" class="next-project-thumb" aria-label="View next project: ' + title + '">' +
-          '<img data-img-state loading="lazy" decoding="async" src="' + img + '" alt="' + title + '" />' +
-          "</a>" +
-          '<div class="section-head next-project-head">' +
-          '<div class="head-left">' +
-          '<div class="eyebrow">Next project</div>' +
-          '<h2 class="display-3">' + title + "</h2>" +
-          "</div>" +
-          '<a href="' + href + '" class="btn btn-ghost">View case study <span class="arrow"></span></a>' +
-          "</div></div></div></section>";
-        bindImageLoadStates(root);
-        if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
-          SiteUI.rebindAfterDynamicMount(root);
-        }
-      })
-      .catch(function (err) { console.error("next project error", err); });
+    return Promise.resolve();
   }
 
   function render(p) {

@@ -2789,12 +2789,14 @@ body[data-screen-label="Blog"] .page-hero.blog-hero {
   max-width: 22ch;
 }
 
-.article-final-cta {
-  padding: 0 0 var(--section-y);
+.article .article-body-section.article-body-light {
+  padding-bottom: clamp(48px, 6vw, 72px);
 }
 
-.article-cta-final {
-  padding: 56px;
+.article-final-cta.section.section--cta-tight {
+  padding-top: var(--section-y);
+  padding-bottom: var(--section-y);
+  border-top: 1px solid var(--line-100);
 }
 
 @media (max-width: 1024px) {
