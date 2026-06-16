@@ -359,12 +359,21 @@
   max-width: none;
 }
 
+.detail-inline-media-frame {
+  height: auto;
+}
+
 .detail-inline-media.detail-inline-media--hero {
   padding-top: 0;
 }
 
+.detail-inline-media:last-of-type {
+  padding-bottom: clamp(80px, 12vw, 120px);
+}
+
 @media (max-width: 900px) {
   .detail-inline-media { padding: 64px 0 0; }
+  .detail-inline-media:last-of-type { padding-bottom: 80px; }
 }
 
 /* ---------- Gallery ------------------------------------------------- */

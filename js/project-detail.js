@@ -230,14 +230,13 @@
     var coverNorm = normalizeAssetUrl(cover) || "/images/image-placeholder.svg";
     var galleryUrls = (p.galleryUrls || []).map(normalizeAssetUrl).filter(Boolean);
     var imageBelowHero = galleryUrls[0] || "";
-    var galleryGridUrls = galleryUrls.slice(1);
-    var finalWideUrl = "";
-    if (galleryGridUrls.length > 0) {
-      finalWideUrl = galleryGridUrls[galleryGridUrls.length - 1];
-      galleryGridUrls = galleryGridUrls.slice(0, -1);
-    }
+    var remainingImages = galleryUrls.slice(1);
     preloadImage(coverNorm, "high");
     preloadImage(imageBelowHero, "high");
+
+    var remainingImagesHtml = remainingImages.map(function (u) {
+      return inlineGalleryImage(u, p.title || "", "detail-inline-media--wide");
+    }).join("");
 
     root.innerHTML =
       '<section class="page-hero detail-hero">' +
@@ -260,8 +259,7 @@
       (body
         ? "<section><div class=\"container\"><div class=\"case-body\" data-reveal>" + body + "</div></div></section>"
         : "") +
-      galleryGridSection(galleryGridUrls) +
-      inlineGalleryImage(finalWideUrl, p.title || "", "detail-inline-media--wide") +
+      remainingImagesHtml +
       '<div id="project-next-root"></div>';
 
     bindImageLoadStates(root);
