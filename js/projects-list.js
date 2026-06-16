@@ -34,22 +34,21 @@
   }
 
   /**
-   * Featured first (manual order), then non-featured by date desc.
+   * Manual order via sortOrder, with date as tie-breaker.
    */
-  function sortFeaturedByManualOrder(arr) {
+  function sortBySortOrder(arr) {
     return arr.slice().sort(function (a, b) {
       var ao = (a && typeof a.sortOrder === "number") ? a.sortOrder : Number(a && a.sortOrder);
       var bo = (b && typeof b.sortOrder === "number") ? b.sortOrder : Number(b && b.sortOrder);
       if (!isFinite(ao)) ao = 999999;
       if (!isFinite(bo)) bo = 999999;
       if (ao !== bo) return ao - bo;
-      // Stable tie-breaker so unchanged items don't jump around.
       return projectDateMillis(b) - projectDateMillis(a);
     });
   }
 
   function mergeFeaturedThenLatest(featuredRows, nonFeaturedRows) {
-    return sortFeaturedByManualOrder(featuredRows).concat(sortProjectsByDateDesc(nonFeaturedRows));
+    return sortBySortOrder(featuredRows).concat(sortBySortOrder(nonFeaturedRows));
   }
 
   /**
@@ -231,8 +230,46 @@
       });
   }
 
+  function renderProjectsIndex(container, options) {
+    options = options || {};
+    var limit = options.limit || 50;
+    var layout = options.layout || "tiles";
+    if (!container || !window.firebase || !firebase.apps.length) {
+      if (container)
+        container.innerHTML =
+          '<p class="text-mute">Projects are loading…</p>';
+      return Promise.resolve();
+    }
+    var db = firebase.firestore();
+    container.innerHTML = '<p class="text-mute">Projects are loading…</p>';
+    return fetchCombinedHomeList(db)
+      .then(function (combined) {
+        if (!combined.length) {
+          container.innerHTML =
+            '<p class="text-mute">No published projects yet.</p>';
+          return;
+        }
+        var rows = combined.slice(0, limit);
+        container.innerHTML = "";
+        rows.forEach(function (p) {
+          container.insertAdjacentHTML(
+            "beforeend",
+            layout === "tiles" ? tileMarkup(p) : cardMarkup(p),
+          );
+        });
+        if (window.SiteUI && SiteUI.rebindAfterDynamicMount) {
+          SiteUI.rebindAfterDynamicMount(container);
+        }
+      })
+      .catch(function (err) {
+        console.error(err);
+        container.innerHTML =
+          '<p class="text-mute">Could not load projects.</p>';
+      });
+  }
+
   /**
-   * Home featured grid: featured projects first (by date), then latest non-featured.
+   * Home featured grid: featured first, then the rest (both by sortOrder).
    * Initial visible count `initialCount`, then +`step` per "Show more".
    * Resolves to doc ids for the first `reserveExclude` rows (carousel excludes these).
    */
@@ -439,6 +476,7 @@
 
   window.ccProjects = {
     renderList: renderList,
+    renderProjectsIndex: renderProjectsIndex,
     renderSlider: renderSlider,
     renderHomeFeatured: renderHomeFeatured,
   };

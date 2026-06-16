@@ -262,9 +262,10 @@
         updatedAt: ts,
       });
     });
-    plainIds.forEach(function (id) {
+    plainIds.forEach(function (id, i) {
       batch.update(db.collection("projects").doc(id), {
         featured: false,
+        sortOrder: featIds.length + i,
         updatedAt: ts,
       });
     });
@@ -319,7 +320,7 @@
       await refreshList();
       if (metaEl) {
         var cur = (metaEl.textContent || "").trim();
-        metaEl.textContent = cur ? cur + " \u2014 Featured order saved." : "Featured order saved.";
+        metaEl.textContent = cur ? cur + " \u2014 Project order saved." : "Project order saved.";
       }
     } catch (err) {
       console.error(err);
@@ -703,9 +704,6 @@
       return (a.d.sortOrder || 0) - (b.d.sortOrder || 0);
     });
     restPub.sort(function (a, b) {
-      var da = String(a.d.date || "").slice(0, 10);
-      var db = String(b.d.date || "").slice(0, 10);
-      if (da !== db) return db.localeCompare(da);
       return (a.d.sortOrder || 0) - (b.d.sortOrder || 0);
     });
     if (featEmpty) featEmpty.hidden = featPub.length > 0;
