@@ -232,7 +232,7 @@
     var imageBelowHero = galleryUrls[0] || "";
     var galleryGridUrls = galleryUrls.slice(1);
     var finalWideUrl = "";
-    if (galleryGridUrls.length > 1) {
+    if (galleryGridUrls.length > 0) {
       finalWideUrl = galleryGridUrls[galleryGridUrls.length - 1];
       galleryGridUrls = galleryGridUrls.slice(0, -1);
     }
