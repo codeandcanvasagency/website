@@ -331,7 +331,7 @@
   margin-top: var(--project-detail-stack-gap);
 }
 
-#project-detail-root > .case-body-section--result:last-child .case-body {
+#project-detail-root > .case-body-section--result .case-body {
   padding-bottom: clamp(64px, 10vw, 96px);
 }
 
@@ -381,7 +381,7 @@
     --project-detail-stack-gap: clamp(40px, 5vw, 56px);
   }
 
-  #project-detail-root > .case-body-section--result:last-child .case-body {
+  #project-detail-root > .case-body-section--result .case-body {
     padding-bottom: 64px;
   }
 }
