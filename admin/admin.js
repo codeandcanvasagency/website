@@ -109,6 +109,24 @@
     setTimeout(function () { $("companyName").focus(); }, 0);
   }
 
+  async function syncReviewsForCompany(companyId, logoUrl, name, industry) {
+    if (!companyId) return 0;
+    var snap = await db.collection("reviews").where("companyId", "==", companyId).get();
+    if (snap.empty) return 0;
+    var batch = db.batch();
+    var ts = firebase.firestore.FieldValue.serverTimestamp();
+    snap.forEach(function (doc) {
+      batch.update(doc.ref, {
+        avatarUrl: logoUrl || "",
+        clientName: name || doc.data().clientName || "",
+        clientIndustry: industry != null ? industry : (doc.data().clientIndustry || ""),
+        updatedAt: ts,
+      });
+    });
+    await batch.commit();
+    return snap.size;
+  }
+
   async function saveCompany() {
     $("companySaveStatus").textContent = "";
     $("companySaveStatus").className = "ok";
@@ -128,7 +146,10 @@
     var docId = editId || slugify(name);
     try {
       await db.collection("companies").doc(docId).set(payload, { merge: true });
-      $("companySaveStatus").textContent = "Saved.";
+      var synced = await syncReviewsForCompany(docId, payload.logoUrl, payload.name, payload.industry);
+      $("companySaveStatus").textContent = synced
+        ? "Saved. Updated " + synced + " linked review" + (synced === 1 ? "." : "s.")
+        : "Saved.";
       $("companyEditId").value = docId;
       $("companyModalTitle").textContent = "Edit company";
       $("btnDeleteCompany").hidden = false;
