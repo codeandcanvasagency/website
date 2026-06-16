@@ -235,27 +235,11 @@
 .case-body {
   max-width: 760px;
   margin: 0 auto;
-  padding: 120px 0 40px;
-}
-
-.case-body-section--main .case-body {
-  padding: 120px 0 40px;
-}
-
-.case-body-section--result .case-body {
-  padding: 24px 0 clamp(64px, 10vw, 96px);
-}
-
-.case-body-section--main + .case-body-section--result .case-body {
-  padding-top: clamp(48px, 6vw, 72px);
-}
-
-.detail-inline-media + .case-body-section--result .case-body {
-  padding-top: 24px;
+  padding: 0;
 }
 
 .case-body .case-section + .case-section {
-  margin-top: clamp(48px, 6vw, 72px);
+  margin-top: var(--project-detail-stack-gap, clamp(48px, 6vw, 72px));
 }
 
 .case-body h2 {
@@ -334,14 +318,27 @@
   top: 2px;
 }
 
-@media (max-width: 900px) {
-  .case-body { padding: 80px 0 32px; }
+/* ---------- Project detail middle stack spacing ---------------------- */
+
+#project-detail-root {
+  --project-detail-stack-gap: clamp(48px, 6vw, 72px);
+}
+
+#project-detail-root > .detail-inline-media + .case-body-section,
+#project-detail-root > .case-body-section + .detail-inline-media,
+#project-detail-root > .detail-inline-media + .detail-inline-media,
+#project-detail-root > .case-body-section + .case-body-section {
+  margin-top: var(--project-detail-stack-gap);
+}
+
+#project-detail-root > .case-body-section--result:last-child .case-body {
+  padding-bottom: clamp(64px, 10vw, 96px);
 }
 
 /* ---------- Project detail inline media ------------------------------ */
 
 .detail-inline-media {
-  padding: 40px 0 0;
+  padding: 0;
 }
 
 .detail-inline-media-frame {
@@ -379,27 +376,14 @@
   height: auto;
 }
 
-.detail-inline-media.detail-inline-media--hero {
-  padding-top: 0;
-}
-
-section:has(.case-body) + .detail-inline-media,
-.case-body-section--main + .detail-inline-media {
-  padding-top: 24px;
-}
-
-.detail-inline-media:has(+ .case-body-section--result) {
-  padding-bottom: 0;
-}
-
-.detail-inline-media:last-of-type {
-  padding-bottom: clamp(64px, 10vw, 96px);
-}
-
 @media (max-width: 900px) {
-  .detail-inline-media { padding: 32px 0 0; }
-  section:has(.case-body) + .detail-inline-media { padding-top: 20px; }
-  .detail-inline-media:last-of-type { padding-bottom: 64px; }
+  #project-detail-root {
+    --project-detail-stack-gap: clamp(40px, 5vw, 56px);
+  }
+
+  #project-detail-root > .case-body-section--result:last-child .case-body {
+    padding-bottom: 64px;
+  }
 }
 
 /* ---------- Gallery ------------------------------------------------- */
