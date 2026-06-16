@@ -88,27 +88,37 @@
       .join("");
   }
 
+  function caseSectionHtml(title, body) {
+    if (!body || !String(body).trim()) return "";
+    return (
+      '<section class="case-section">' +
+      "<h2>" + esc(title) + "</h2>" +
+      plainToRichHtml(body) +
+      "</section>"
+    );
+  }
+
   function buildCaseBody(p) {
-    var sections = [];
-
-    function add(title, body) {
-      if (!body || !String(body).trim()) return;
-      sections.push(
-        '<section class="case-section">' +
-        "<h2>" + esc(title) + "</h2>" +
-        plainToRichHtml(body) +
-        "</section>"
-      );
-    }
-
     if (p.bodyHtml) {
-      return p.bodyHtml;
+      return { main: p.bodyHtml, result: "" };
     }
 
-    add("The brief", p.caseBrief);
-    add("What we delivered", p.caseDelivered);
-    add("Result", p.caseOutcome);
-    return sections.join("");
+    return {
+      main: caseSectionHtml("The brief", p.caseBrief) +
+        caseSectionHtml("What we delivered", p.caseDelivered),
+      result: caseSectionHtml("Result", p.caseOutcome),
+    };
+  }
+
+  function caseBodySectionHtml(content, modifier) {
+    if (!content) return "";
+    var sectionClass = "case-body-section" + (modifier ? " " + modifier : "");
+    return (
+      "<section class=\"" + sectionClass + "\">" +
+      "<div class=\"container\">" +
+      "<div class=\"case-body\" data-reveal>" + content + "</div>" +
+      "</div></section>"
+    );
   }
 
   function tagPill(tag) {
@@ -226,7 +236,7 @@
       statBlock("Deliverables", p.deliverables) +
       statBlock("Duration", p.duration);
 
-    var body = buildCaseBody(p);
+    var caseBody = buildCaseBody(p);
     var coverNorm = normalizeAssetUrl(cover) || "/images/image-placeholder.svg";
     var galleryUrls = (p.galleryUrls || []).map(normalizeAssetUrl).filter(Boolean);
     var imageBelowHero = galleryUrls[0] || "";
@@ -256,10 +266,9 @@
       "</div>" +
       "</div></section>" +
       inlineGalleryImage(imageBelowHero, p.title || "", "detail-inline-media--hero") +
-      (body
-        ? "<section><div class=\"container\"><div class=\"case-body\" data-reveal>" + body + "</div></div></section>"
-        : "") +
+      caseBodySectionHtml(caseBody.main, "case-body-section--main") +
       remainingImagesHtml +
+      caseBodySectionHtml(caseBody.result, "case-body-section--result") +
       '<div id="project-next-root"></div>';
 
     bindImageLoadStates(root);
