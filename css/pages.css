@@ -359,6 +359,11 @@
   max-width: none;
 }
 
+.detail-inline-media--hero .container,
+.detail-inline-media--wide .container {
+  max-width: none;
+}
+
 .detail-inline-media.detail-inline-media--hero {
   padding-top: 0;
 }
