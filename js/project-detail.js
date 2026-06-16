@@ -147,6 +147,18 @@
     document.head.appendChild(link);
   }
 
+  function normalizeAssetUrl(u) {
+    if (!u) return "";
+    var s = String(u).trim();
+    if (!s) return "";
+    // Absolute URLs (or special schemes) are fine as-is.
+    if (/^(https?:)?\/\//i.test(s) || /^data:/i.test(s) || /^blob:/i.test(s)) return s;
+    // Root-relative paths are fine as-is.
+    if (s[0] === "/") return s;
+    // Otherwise make it root-relative so it doesn't resolve under /projects/{slug}/...
+    return "/" + s;
+  }
+
   function markImageLoaded(img) {
     if (!img) return;
     img.classList.add("is-loaded");
@@ -154,10 +166,6 @@
 
   function bindImageLoadStates(root) {
     if (!root) return;
-    if (window.SiteUI && typeof SiteUI.bindDetailCoverImages === "function") {
-      SiteUI.bindDetailCoverImages(root);
-      return;
-    }
     var imgs = root.querySelectorAll("img[data-img-state]");
     imgs.forEach(function (img) {
       if (img.complete && img.naturalWidth > 0) {
@@ -219,10 +227,16 @@
       statBlock("Duration", p.duration);
 
     var body = buildCaseBody(p);
-    var galleryUrls = (p.galleryUrls || []).filter(Boolean);
-    var imageBelowHero = galleryUrls[1] || "";
-    var galleryGridUrls = galleryUrls.slice(2);
-    preloadImage(cover, "high");
+    var coverNorm = normalizeAssetUrl(cover) || "/images/image-placeholder.svg";
+    var galleryUrls = (p.galleryUrls || []).map(normalizeAssetUrl).filter(Boolean);
+    var imageBelowHero = galleryUrls[0] || "";
+    var galleryGridUrls = galleryUrls.slice(1);
+    var finalWideUrl = "";
+    if (galleryGridUrls.length > 1) {
+      finalWideUrl = galleryGridUrls[galleryGridUrls.length - 1];
+      galleryGridUrls = galleryGridUrls.slice(0, -1);
+    }
+    preloadImage(coverNorm, "high");
     preloadImage(imageBelowHero, "high");
 
     root.innerHTML =
@@ -237,7 +251,7 @@
       (p.summary ? '<p class="lead">' + esc(p.summary) + "</p>" : "") +
       "</div>" +
       '<div class="detail-cover" data-reveal>' +
-      '<img data-img-state loading="eager" fetchpriority="high" decoding="async" src="' + esc(cover) + '" alt="' + esc(p.title || "") + '" />' +
+      '<img data-img-state loading="eager" fetchpriority="high" decoding="async" src="' + esc(coverNorm) + '" alt="' + esc(p.title || "") + '" />' +
       "</div>" +
       (stats ? '<div class="detail-stats">' + stats + "</div>" : "") +
       "</div>" +
@@ -247,6 +261,7 @@
         ? "<section><div class=\"container\"><div class=\"case-body\" data-reveal>" + body + "</div></div></section>"
         : "") +
       galleryGridSection(galleryGridUrls) +
+      inlineGalleryImage(finalWideUrl, p.title || "", "detail-inline-media--wide") +
       '<div id="project-next-root"></div>';
 
     bindImageLoadStates(root);

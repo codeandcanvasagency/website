@@ -512,7 +512,11 @@
 
   function bindDetailCoverImages(root) {
     var scope = root || document;
-    var imgs = scope.querySelectorAll(".detail-cover img[data-img-state]");
+    var imgs = scope.querySelectorAll(
+      ".detail-cover img[data-img-state], " +
+      ".detail-inline-media img[data-img-state], " +
+      ".detail-gallery img[data-img-state]"
+    );
     imgs.forEach(function (img) {
       function markLoaded() {
         img.classList.add("is-loaded");

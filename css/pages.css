@@ -355,6 +355,10 @@
   max-width: none;
 }
 
+.detail-inline-media--wide .detail-inline-media-frame {
+  max-width: none;
+}
+
 .detail-inline-media.detail-inline-media--hero {
   padding-top: 0;
 }

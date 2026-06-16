@@ -34,10 +34,22 @@
   }
 
   /**
-   * Featured first (each block sorted by date desc), then non-featured by date desc.
+   * Featured first (manual order), then non-featured by date desc.
    */
+  function sortFeaturedByManualOrder(arr) {
+    return arr.slice().sort(function (a, b) {
+      var ao = (a && typeof a.sortOrder === "number") ? a.sortOrder : Number(a && a.sortOrder);
+      var bo = (b && typeof b.sortOrder === "number") ? b.sortOrder : Number(b && b.sortOrder);
+      if (!isFinite(ao)) ao = 999999;
+      if (!isFinite(bo)) bo = 999999;
+      if (ao !== bo) return ao - bo;
+      // Stable tie-breaker so unchanged items don't jump around.
+      return projectDateMillis(b) - projectDateMillis(a);
+    });
+  }
+
   function mergeFeaturedThenLatest(featuredRows, nonFeaturedRows) {
-    return sortProjectsByDateDesc(featuredRows).concat(sortProjectsByDateDesc(nonFeaturedRows));
+    return sortFeaturedByManualOrder(featuredRows).concat(sortProjectsByDateDesc(nonFeaturedRows));
   }
 
   /**
@@ -58,7 +70,7 @@
     var qFeat = col
       .where("published", "==", true)
       .where("featured", "==", true)
-      .orderBy("date", "desc")
+      .orderBy("sortOrder", "asc")
       .limit(80);
     var qRecent = col
       .where("published", "==", true)
